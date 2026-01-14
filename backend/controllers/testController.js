@@ -5,6 +5,14 @@ const getQuestions = async (req, res) => {
     const { level } = req.params;
     const lang = req.query.lang || 'ru';
 
+    // Get test settings for this level
+    const settingsResult = await db.query(
+      'SELECT question_count FROM test_settings WHERE level = $1',
+      [level]
+    );
+    
+    const questionCount = settingsResult.rows[0]?.question_count || 15;
+
     const result = await db.query(
       `SELECT id, 
               level, 
@@ -15,11 +23,10 @@ const getQuestions = async (req, res) => {
        FROM questions 
        WHERE level = $1 AND is_active = true 
        ORDER BY RANDOM() 
-       LIMIT 15`,
-      [level]
+       LIMIT $2`,
+      [level, questionCount]
     );
 
-    // Remove correct_answer for security
     const questions = result.rows.map(q => {
       const { correct_answer, ...question } = q;
       return question;
@@ -36,7 +43,14 @@ const submitTest = async (req, res) => {
   try {
     const { userId, level, answers } = req.body;
 
-    // Check if user already completed this level
+    // Get test time from settings
+    const settingsResult = await db.query(
+      'SELECT time_minutes FROM test_settings WHERE level = $1',
+      [level]
+    );
+    
+    const testTime = settingsResult.rows[0]?.time_minutes || 20;
+
     const existingResult = await db.query(
       'SELECT * FROM results WHERE user_id = $1 AND level = $2',
       [userId, level]
@@ -46,7 +60,6 @@ const submitTest = async (req, res) => {
       return res.status(400).json({ error: 'Test already completed for this level' });
     }
 
-    // Get questions with correct answers
     const questionsResult = await db.query(
       'SELECT id, correct_answer, type FROM questions WHERE level = $1',
       [level]
@@ -54,7 +67,6 @@ const submitTest = async (req, res) => {
 
     const questions = questionsResult.rows;
     
-    // Calculate score (only for logic questions)
     let correctCount = 0;
     let totalLogicQuestions = 0;
     
@@ -72,17 +84,15 @@ const submitTest = async (req, res) => {
       ? Math.round((correctCount / totalLogicQuestions) * 100) 
       : 0;
 
-    // Determine color level
     let colorLevel = '';
     if (percentage <= 40) colorLevel = 'weak';
     else if (percentage <= 70) colorLevel = 'medium';
     else colorLevel = 'high';
 
-    // Save result
     const result = await db.query(
       `INSERT INTO results 
-       (user_id, level, score, percentage, color_level, answers) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+       (user_id, level, score, percentage, color_level, answers, completed_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, NOW()) 
        RETURNING *`,
       [userId, level, correctCount, percentage, colorLevel, JSON.stringify(answers)]
     );
@@ -94,7 +104,8 @@ const submitTest = async (req, res) => {
         percentage,
         colorLevel,
         totalQuestions: answers.length,
-        correctAnswers: correctCount
+        correctAnswers: correctCount,
+        testTime: testTime
       }
     });
   } catch (error) {

@@ -51,8 +51,10 @@ const ResultPage: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
+
+  const locale = i18n.language === 'kg' ? 'ky-KG' : 'ru-RU';
 
   useEffect(() => {
     fetchResults();
@@ -136,14 +138,14 @@ const ResultPage: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
-                  Последний результат теста
+                  {t('latestResultTitle')}
                 </Typography>
               </Box>
 
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <Typography variant="body2" color="text.secondary">
-                    Уровень теста
+                    {t('testLevel')}
                   </Typography>
                   <Typography variant="h5">
                     {latestResult.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
@@ -188,7 +190,7 @@ const ResultPage: React.FC = () => {
                     sx={{ fontWeight: 'bold' }}
                   />
                   <Typography variant="body2">
-                    {new Date(latestResult.completed_at).toLocaleDateString('ru-RU', {
+                    {new Date(latestResult.completed_at).toLocaleDateString(locale, {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
@@ -209,8 +211,8 @@ const ResultPage: React.FC = () => {
             onChange={(e, v) => setTab(v)}
             variant="fullWidth"
           >
-            <Tab label="Мои результаты" />
-            {user?.role === 'admin' && <Tab label="История тестов" />}
+            <Tab label={t('myResultsTab')} />
+            {user?.role === 'admin' && <Tab label={t('historyTab')} />}
           </Tabs>
         </Paper>
 
@@ -219,26 +221,26 @@ const ResultPage: React.FC = () => {
           <Box>
             {results.length === 0 ? (
               <Alert severity="info">
-                У вас пока нет результатов тестирования. Пройдите тест, чтобы увидеть результаты.
+                {t('noResultsInfo')}
               </Alert>
             ) : (
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Дата и время</TableCell>
-                      <TableCell>Уровень</TableCell>
-                      <TableCell align="center">Баллы</TableCell>
-                      <TableCell align="center">Процент</TableCell>
-                      <TableCell>Уровень логики</TableCell>
-                      <TableCell>Действия</TableCell>
+                      <TableCell>{t('dateTime')}</TableCell>
+                      <TableCell>{t('levelLabel')}</TableCell>
+                      <TableCell align="center">{t('score')}</TableCell>
+                      <TableCell align="center">{t('percentage')}</TableCell>
+                      <TableCell>{t('logicLevel')}</TableCell>
+                      <TableCell>{t('actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {results.map((result) => (
                       <TableRow key={result.id}>
                         <TableCell>
-                          {new Date(result.completed_at).toLocaleString('ru-RU')}
+                          {new Date(result.completed_at).toLocaleString(locale)}
                         </TableCell>
                         <TableCell>
                           {result.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
@@ -273,25 +275,25 @@ const ResultPage: React.FC = () => {
         {tab === 1 && user?.role === 'admin' && (
           <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              История прохождения тестов всех студентов
+              {t('historyTitle')}
             </Typography>
             
             {history.length === 0 ? (
               <Alert severity="info">
-                Нет данных о прохождении тестов.
+                {t('noHistory')}
               </Alert>
             ) : (
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Студент</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Уровень теста</TableCell>
-                      <TableCell>Дата и время</TableCell>
-                      <TableCell align="center">Баллы</TableCell>
-                      <TableCell align="center">Процент</TableCell>
-                      <TableCell>Уровень логики</TableCell>
+                      <TableCell>{t('student')}</TableCell>
+                      <TableCell>{t('email')}</TableCell>
+                      <TableCell>{t('testLevel')}</TableCell>
+                      <TableCell>{t('dateTime')}</TableCell>
+                      <TableCell align="center">{t('score')}</TableCell>
+                      <TableCell align="center">{t('percentage')}</TableCell>
+                      <TableCell>{t('logicLevel')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -308,10 +310,10 @@ const ResultPage: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          {item.level === 'easy' ? 'Легкий' : 'Средний'}
+                          {item.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
                         </TableCell>
                         <TableCell>
-                          {new Date(item.completed_at).toLocaleString('ru-RU')}
+                          {new Date(item.completed_at).toLocaleString(locale)}
                         </TableCell>
                         <TableCell align="center">
                           <Typography fontWeight="medium">
@@ -355,7 +357,7 @@ const ResultPage: React.FC = () => {
             
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Всего записей: {history.length}
+                {t('totalRecords')}: {history.length}
               </Typography>
             </Box>
           </Box>
