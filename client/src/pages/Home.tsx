@@ -78,21 +78,21 @@ const Home: React.FC = () => {
           }}
           endIcon={<ArrowForward />}
         >
-          🚀 ТЕСТТИ БАШТОО
+          {t('heroStart')}
         </Button>
 
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <QuestionAnswer sx={{ fontSize: 20 }} />
-            <Typography>15 логикалык суроо</Typography>
+            <Typography>{t('heroQuestions')}</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AccessTime sx={{ fontSize: 20 }} />
-            <Typography>20 мүнөт</Typography>
+            <Typography>{t('heroTime')}</Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Psychology sx={{ fontSize: 20 }} />
-            <Typography>Логикаңызды текшериңиз</Typography>
+            <Typography>{t('heroCheckLogic')}</Typography>
           </Box>
         </Box>
       </Paper>
@@ -104,10 +104,10 @@ const Home: React.FC = () => {
             <CardContent sx={{ textAlign: 'center' }}>
               <Psychology color="primary" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h5" gutterBottom>
-                Логикалык ой жүгүртүү
+                {t('feature1Title')}
               </Typography>
               <Typography color="text.secondary">
-                Сиздин аналитикалык жана логикалык ой жүгүртүүңүздү баалоо
+                {t('feature1Desc')}
               </Typography>
             </CardContent>
           </Card>
@@ -118,10 +118,10 @@ const Home: React.FC = () => {
             <CardContent sx={{ textAlign: 'center' }}>
               <Timer color="secondary" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h5" gutterBottom>
-                Убакыт чектөөсү
+                {t('feature2Title')}
               </Typography>
               <Typography color="text.secondary">
-                20 мүнөт ичинде 15 суроого жооп берүү
+                {t('feature2Desc')}
               </Typography>
             </CardContent>
           </Card>
@@ -132,10 +132,10 @@ const Home: React.FC = () => {
             <CardContent sx={{ textAlign: 'center' }}>
               <School color="success" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h5" gutterBottom>
-                Натыйжалуулук
+                {t('feature3Title')}
               </Typography>
               <Typography color="text.secondary">
-                Тесттен кийин деталдуу натыйжа жана сунуштар алуу
+                {t('feature3Desc')}
               </Typography>
             </CardContent>
           </Card>
@@ -145,7 +145,7 @@ const Home: React.FC = () => {
       {/* How It Works */}
       <Paper elevation={2} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
         <Typography variant="h4" gutterBottom align="center">
-          Тест кандай иштейт?
+          {t('howItWorksTitle')}
         </Typography>
         
         <List>
@@ -154,8 +154,8 @@ const Home: React.FC = () => {
               <Typography variant="h5" color="primary">1</Typography>
             </ListItemIcon>
             <ListItemText 
-              primary="Катталуу же кирүү" 
-              secondary="Системага катталып же кирип алыңыз" 
+              primary={t('step1Title')}
+              secondary={t('step1Desc')}
             />
           </ListItem>
           
@@ -164,8 +164,8 @@ const Home: React.FC = () => {
               <Typography variant="h5" color="primary">2</Typography>
             </ListItemIcon>
             <ListItemText 
-              primary="Тестти баштоо" 
-              secondary="Жогорудагы баскычты басып тестти баштаңыз" 
+              primary={t('step2Title')}
+              secondary={t('step2Desc')}
             />
           </ListItem>
           
@@ -174,8 +174,8 @@ const Home: React.FC = () => {
               <Typography variant="h5" color="primary">3</Typography>
             </ListItemIcon>
             <ListItemText 
-              primary="Суроолорго жооп берүү" 
-              secondary="15 логикалык суроого 20 мүнөт ичинде жооп бериңиз" 
+              primary={t('step3Title')}
+              secondary={t('step3Desc')}
             />
           </ListItem>
           
@@ -184,8 +184,8 @@ const Home: React.FC = () => {
               <Typography variant="h5" color="primary">4</Typography>
             </ListItemIcon>
             <ListItemText 
-              primary="Натыйжаны көрүү" 
-              secondary="Тест аяктагандан кийин деталдуу натыйжаңызды көрүңүз" 
+              primary={t('step4Title')}
+              secondary={t('step4Desc')}
             />
           </ListItem>
         </List>
@@ -194,7 +194,7 @@ const Home: React.FC = () => {
       {/* CTA Section */}
       <Box sx={{ textAlign: 'center', mt: 6 }}>
         <Typography variant="h5" gutterBottom>
-          Даярсызбы?
+          {t('ctaReady')}
         </Typography>
         
         <Button
@@ -210,12 +210,12 @@ const Home: React.FC = () => {
           }}
           endIcon={<ArrowForward />}
         >
-          ТЕСТТИ БАШТОО
+          {t('ctaStart')}
         </Button>
         
         {!user && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Тестти баштоо үчүн алгач катталуу же кирүү керек
+            {t('notLoggedMessage')}
           </Typography>
         )}
       </Box>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -15,28 +15,28 @@ import {
   MenuItem,
   Grid,
   Paper,
-} from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  ArrowForward, 
-  Language, 
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  ArrowForward,
+  Language,
   School,
   Timer,
   Psychology,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 const TestSelection: React.FC = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
-  
-  const [selectedLevel, setSelectedLevel] = useState('easy');
+
+  const [selectedLevel, setSelectedLevel] = useState("easy");
   const [testLanguage, setTestLanguage] = useState(i18n.language);
   const [testSettings, setTestSettings] = useState({
     easy: { questions: 15, time: 20 },
-    medium: { questions: 15, time: 20 }
+    medium: { questions: 15, time: 20 },
   });
 
   useEffect(() => {
@@ -50,23 +50,29 @@ const TestSelection: React.FC = () => {
       // const response = await api.get('/test/settings');
       // setTestSettings(response.data);
     } catch (error) {
-      console.error('Failed to load test settings:', error);
+      console.error("Failed to load test settings:", error);
     }
   };
 
   const handleStartTest = () => {
     if (!user) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
     // Сохраняем язык теста
-    localStorage.setItem('test_language', testLanguage);
-    
+    localStorage.setItem("test_language", testLanguage);
+
     // Проверяем, не проходил ли уже этот уровень
-    const testHistory = JSON.parse(localStorage.getItem('test_history') || '{}');
+    const testHistory = JSON.parse(
+      localStorage.getItem("test_history") || "{}"
+    );
     if (testHistory[selectedLevel]) {
-      if (window.confirm('Вы уже проходили этот уровень теста. Хотите пройти снова?')) {
+      if (
+        window.confirm(
+          "Вы уже проходили этот уровень теста. Хотите пройти снова?"
+        )
+      ) {
         navigate(`/test/${selectedLevel}`);
       }
     } else {
@@ -78,11 +84,11 @@ const TestSelection: React.FC = () => {
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          🧠 Тест параметрлерин тандоо
+          {t("testSettingsTitle")}
         </Typography>
 
         <Alert severity="info" sx={{ mb: 4 }}>
-          Ар бир деңгээлди бир жолу гана тапшыра аласыз. Тест убакыты: 20 мүнөт.
+          {t("testInfo")}
         </Alert>
 
         <Grid container spacing={3}>
@@ -90,11 +96,13 @@ const TestSelection: React.FC = () => {
           <Grid item xs={12}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}
+                >
                   <Language color="primary" />
-                  <Typography variant="h6">Тест тилин тандаңыз</Typography>
+                  <Typography variant="h6">{t("selectLanguage")}</Typography>
                 </Box>
-                
+
                 <FormControl fullWidth>
                   <Select
                     value={testLanguage}
@@ -102,20 +110,24 @@ const TestSelection: React.FC = () => {
                     sx={{ mb: 2 }}
                   >
                     <MenuItem value="ru">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
                         <Typography>🇷🇺 Русский язык</Typography>
                       </Box>
                     </MenuItem>
                     <MenuItem value="kg">
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
                         <Typography>🇰🇬 Кыргыз тили</Typography>
                       </Box>
                     </MenuItem>
                   </Select>
                 </FormControl>
-                
+
                 <Typography variant="body2" color="text.secondary">
-                  Суроолор жана жооптор тандалган тилде көрсөтүлөт
+                  {t("languageHint")}
                 </Typography>
               </CardContent>
             </Card>
@@ -126,102 +138,165 @@ const TestSelection: React.FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                  Тест деңгээлин тандаңыз:
+                  {t("selectLevelTitle")}
                 </Typography>
-                
+
                 <RadioGroup
                   value={selectedLevel}
                   onChange={(e) => setSelectedLevel(e.target.value)}
                 >
-                  <Paper 
-                    elevation={selectedLevel === 'easy' ? 3 : 0}
-                    sx={{ 
-                      p: 2, 
-                      mb: 2, 
-                      border: '2px solid',
-                      borderColor: selectedLevel === 'easy' ? 'primary.main' : 'transparent',
+                  <Paper
+                    elevation={selectedLevel === "easy" ? 3 : 0}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      border: "2px solid",
+                      borderColor:
+                        selectedLevel === "easy"
+                          ? "primary.main"
+                          : "transparent",
                       borderRadius: 2,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: 'primary.light',
-                      }
+                      cursor: "pointer",
+                      "&:hover": {
+                        borderColor: "primary.light",
+                      },
                     }}
-                    onClick={() => setSelectedLevel('easy')}
+                    onClick={() => setSelectedLevel("easy")}
                   >
                     <FormControlLabel
                       value="easy"
                       control={<Radio />}
                       label={
                         <Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 1,
+                            }}
+                          >
                             <School color="success" />
                             <Typography variant="subtitle1" fontWeight="bold">
-                              🟢 Жеңил деңгээл
+                              🟢 {t("easyLevel")}
                             </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              mb: 1,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
                               <Psychology fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.easy.questions} логикалык суроо
+                                {testSettings.medium.questions}{" "}
+                                {t("logicQuestions")}
                               </Typography>
                             </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
                               <Timer fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.easy.time} мүнөт
+                                {testSettings.medium.time} {t("minutes")}
                               </Typography>
                             </Box>
                           </Box>
                           <Typography variant="body2" color="text.secondary">
-                            Башталгыч деңгээл, негизги логикалык суроолор
+                            {t("easyDesc")}
                           </Typography>
                         </Box>
                       }
                     />
                   </Paper>
-                  
-                  <Paper 
-                    elevation={selectedLevel === 'medium' ? 3 : 0}
-                    sx={{ 
-                      p: 2, 
-                      border: '2px solid',
-                      borderColor: selectedLevel === 'medium' ? 'warning.main' : 'transparent',
+
+                  <Paper
+                    elevation={selectedLevel === "medium" ? 3 : 0}
+                    sx={{
+                      p: 2,
+                      border: "2px solid",
+                      borderColor:
+                        selectedLevel === "medium"
+                          ? "warning.main"
+                          : "transparent",
                       borderRadius: 2,
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: 'warning.light',
-                      }
+                      cursor: "pointer",
+                      "&:hover": {
+                        borderColor: "warning.light",
+                      },
                     }}
-                    onClick={() => setSelectedLevel('medium')}
+                    onClick={() => setSelectedLevel("medium")}
                   >
                     <FormControlLabel
                       value="medium"
                       control={<Radio />}
                       label={
                         <Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 1,
+                            }}
+                          >
                             <School color="warning" />
                             <Typography variant="subtitle1" fontWeight="bold">
-                              🟡 Орто деңгээл
+                              🟡 {t("mediumLevel")}
                             </Typography>
                           </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              mb: 1,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
                               <Psychology fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.medium.questions} логикалык суроо
+                                {testSettings.medium.questions}{" "}
+                                {t("logicQuestions")}
                               </Typography>
                             </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
                               <Timer fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.medium.time} мүнөт
+                                {testSettings.medium.time} {t("minutes")}
                               </Typography>
                             </Box>
                           </Box>
+
                           <Typography variant="body2" color="text.secondary">
-                            Орто деңгээл, татаал логикалык суроолор
+                            {t("mediumDesc")}
                           </Typography>
                         </Box>
                       }
@@ -234,13 +309,13 @@ const TestSelection: React.FC = () => {
         </Grid>
 
         {/* Кнопка начала теста */}
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
+        <Box sx={{ textAlign: "center", mt: 4 }}>
           {!user ? (
             <Alert severity="warning" sx={{ mb: 3 }}>
-              Тестти баштоо үчүн алгач катталуу же кирүү керек
+              {t("notLoggedMessage")}
             </Alert>
           ) : null}
-          
+
           <Button
             variant="contained"
             size="large"
@@ -249,19 +324,20 @@ const TestSelection: React.FC = () => {
             sx={{
               px: 6,
               py: 1.5,
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
+              fontSize: "1.1rem",
+              fontWeight: "bold",
               minWidth: 300,
             }}
             endIcon={<ArrowForward />}
           >
-            {user ? 'ТЕСТТИ БАШТОО' : 'КИРҮҮ / КАТТАЛУУ'}
+            {user ? t("startTestBtn") : t("loginOrRegister")}
           </Button>
-          
+
           {user && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              Тандалган деңгээл: {selectedLevel === 'easy' ? 'Жеңил' : 'Орто'} | 
-              Тил: {testLanguage === 'ru' ? 'Русский' : 'Кыргызча'}
+              {t("selectedLevelLabel")}:{" "}
+              {t(selectedLevel === "easy" ? "easyLevel" : "mediumLevel")} | Тил:{" "}
+              {testLanguage === "ru" ? "Русский" : "Кыргызча"}
             </Typography>
           )}
         </Box>

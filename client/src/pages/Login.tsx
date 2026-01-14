@@ -68,7 +68,7 @@ const Login: React.FC = () => {
 
           <TextField
             fullWidth
-            label={t('password')}
+            label={t('пароль')}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

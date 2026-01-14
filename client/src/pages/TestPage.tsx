@@ -12,6 +12,7 @@ import {
   LinearProgress,
   Box,
   Alert,
+  TextField,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +23,7 @@ interface Question {
   id: number;
   question: string;
   options: string[];
-  type: string;
+  type: string; // 'single', 'multiple', 'text', 'motivational'
 }
 
 const TestPage: React.FC = () => {
@@ -34,6 +35,7 @@ const TestPage: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [textAnswers, setTextAnswers] = useState<{ [key: number]: string }>({});
   const [timeLeft, setTimeLeft] = useState(20 * 60);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,7 +59,14 @@ const TestPage: React.FC = () => {
       const response = await api.get(`/test/questions/${level}`, {
         params: { lang: i18n.language }
       });
-      setQuestions(response.data);
+      
+      const validatedQuestions = response.data.map((q: any) => ({
+        ...q,
+        options: Array.isArray(q.options) ? q.options : [],
+        type: q.type || 'single'
+      }));
+      
+      setQuestions(validatedQuestions);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load questions');
     } finally {
@@ -72,9 +81,27 @@ const TestPage: React.FC = () => {
     });
   };
 
+  const handleTextAnswerChange = (questionId: number, text: string) => {
+    setTextAnswers({
+      ...textAnswers,
+      [questionId]: text,
+    });
+  };
+
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
+    }
+  };
+
+  const isCurrentQuestionAnswered = () => {
+    const currentQ = questions[currentQuestion];
+    if (!currentQ) return false;
+    
+    if (currentQ.type === 'motivational' || currentQ.type === 'text') {
+      return !!textAnswers[currentQ.id] && textAnswers[currentQ.id].trim().length > 0;
+    } else {
+      return !!answers[currentQ.id];
     }
   };
 
@@ -83,12 +110,19 @@ const TestPage: React.FC = () => {
       const answerArray = Object.entries(answers).map(([questionId, answer]) => ({
         questionId: parseInt(questionId),
         answer,
+        type: 'choice'
+      }));
+
+      const textAnswerArray = Object.entries(textAnswers).map(([questionId, text]) => ({
+        questionId: parseInt(questionId),
+        answer: text,
+        type: 'text'
       }));
 
       await api.post('/test/submit', {
         userId: user?.id,
         level,
-        answers: answerArray,
+        answers: [...answerArray, ...textAnswerArray],
       });
 
       navigate('/results');
@@ -130,6 +164,14 @@ const TestPage: React.FC = () => {
   }
 
   const currentQ = questions[currentQuestion];
+  
+  if (!currentQ) {
+    return (
+      <Container>
+        <Alert severity="error">Вопрос не найден</Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md">
@@ -137,6 +179,8 @@ const TestPage: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h6">
             Вопрос {currentQuestion + 1} из {questions.length}
+            {currentQ.type === 'motivational' && ' (Мотивационный)'}
+            {currentQ.type === 'text' && ' (Текстовый ответ)'}
           </Typography>
           <Typography variant="h6" color="primary">
             Время: {formatTime(timeLeft)}
@@ -151,22 +195,46 @@ const TestPage: React.FC = () => {
               {currentQ.question}
             </Typography>
 
-            <FormControl component="fieldset">
-              <RadioGroup
-                value={answers[currentQ.id] || ''}
-                onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-              >
-                {currentQ.options.map((option, index) => (
-                  <FormControlLabel
-                    key={index}
-                    value={option}
-                    control={<Radio />}
-                    label={option}
-                    sx={{ mb: 1 }}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
+            {currentQ.type === 'motivational' || currentQ.type === 'text' ? (
+              <Box sx={{ mt: 3 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={currentQ.type === 'motivational' ? 6 : 4}
+                  variant="outlined"
+                  label={currentQ.type === 'motivational' ? 'Ваш ответ (мотивация)' : 'Ваш ответ'}
+                  value={textAnswers[currentQ.id] || ''}
+                  onChange={(e) => handleTextAnswerChange(currentQ.id, e.target.value)}
+                  placeholder={
+                    currentQ.type === 'motivational' 
+                      ? 'Пожалуйста, напишите вашу мотивацию...' 
+                      : 'Пожалуйста, напишите ваш ответ...'
+                  }
+                />
+                {currentQ.type === 'motivational' && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    Пожалуйста, напишите вашу мотивацию для участия
+                  </Alert>
+                )}
+              </Box>
+            ) : (
+              <FormControl component="fieldset" fullWidth>
+                <RadioGroup
+                  value={answers[currentQ.id] || ''}
+                  onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
+                >
+                  {currentQ.options.map((option, index) => (
+                    <FormControlLabel
+                      key={index}
+                      value={option}
+                      control={<Radio />}
+                      label={option}
+                      sx={{ mb: 1 }}
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
               <Button
@@ -182,7 +250,7 @@ const TestPage: React.FC = () => {
                   variant="contained"
                   color="success"
                   onClick={submitTest}
-                  disabled={!answers[currentQ.id]}
+                  disabled={!isCurrentQuestionAnswered()}
                 >
                   Завершить тест
                 </Button>
@@ -190,7 +258,7 @@ const TestPage: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={handleNext}
-                  disabled={!answers[currentQ.id]}
+                  disabled={!isCurrentQuestionAnswered()}
                 >
                   Следующий вопрос
                 </Button>
@@ -200,7 +268,9 @@ const TestPage: React.FC = () => {
         </Card>
 
         <Alert severity="info" sx={{ mt: 3 }}>
-          Нельзя пропустить вопрос. Выберите ответ, чтобы продолжить.
+          {currentQ.type === 'motivational' || currentQ.type === 'text' 
+            ? 'Пожалуйста, напишите развернутый ответ' 
+            : 'Нельзя пропустить вопрос. Выберите ответ, чтобы продолжить.'}
         </Alert>
       </Box>
     </Container>

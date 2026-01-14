@@ -18,14 +18,12 @@ import {
   Alert,
   Divider,
   Typography,
-  Select,
-  SelectChangeEvent,
 } from '@mui/material';
 import {
   CheckCircle,
-  Cancel,
   Delete,
   Add,
+  RadioButtonUnchecked,
 } from '@mui/icons-material';
 
 interface QuestionDialogProps {
@@ -35,6 +33,17 @@ interface QuestionDialogProps {
   onSubmit: (data: any) => void;
   onDelete?: (id: number) => void;
 }
+
+/** 🔥 BACKEND МАППИНГ */
+const LEVEL_MAP: Record<string, string> = {
+  easy: 'weak',
+  medium: 'medium',
+};
+
+const TYPE_MAP: Record<string, string> = {
+  logic: 'single',
+  motivational: 'text',
+};
 
 const QuestionDialog: React.FC<QuestionDialogProps> = ({
   open,
@@ -52,27 +61,35 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
     options_kg: ['', '', '', ''],
     correct_answer: '',
   });
-  
-  const [correctOptionIndex, setCorrectOptionIndex] = useState<number>(0);
+
+  const [correctOptionIndex, setCorrectOptionIndex] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
-    if (editingQuestion) {
-      setFormData({
-        level: editingQuestion.level,
-        type: editingQuestion.type,
-        question_ru: editingQuestion.question_ru,
-        question_kg: editingQuestion.question_kg,
-        options_ru: editingQuestion.options_ru,
-        options_kg: editingQuestion.options_kg,
-        correct_answer: editingQuestion.correct_answer,
-      });
-      
-      const ruIndex = editingQuestion.options_ru.indexOf(editingQuestion.correct_answer);
-      const kgIndex = editingQuestion.options_kg.indexOf(editingQuestion.correct_answer);
-      setCorrectOptionIndex(ruIndex !== -1 ? ruIndex : kgIndex);
-    } else {
+    if (!editingQuestion) {
       resetForm();
+      return;
+    }
+
+    setFormData({
+      level: editingQuestion.level === 'weak' ? 'easy' : editingQuestion.level,
+      type: editingQuestion.type === 'single' ? 'logic' : 'motivational',
+      question_ru: editingQuestion.question_ru || '',
+      question_kg: editingQuestion.question_kg || '',
+      options_ru: editingQuestion.options_ru?.length
+        ? editingQuestion.options_ru
+        : ['', '', '', ''],
+      options_kg: editingQuestion.options_kg?.length
+        ? editingQuestion.options_kg
+        : ['', '', '', ''],
+      correct_answer: editingQuestion.correct_answer || '',
+    });
+
+    if (editingQuestion.options_ru?.length) {
+      const idx = editingQuestion.options_ru.indexOf(
+        editingQuestion.correct_answer
+      );
+      setCorrectOptionIndex(idx >= 0 ? idx : 0);
     }
   }, [editingQuestion]);
 
@@ -90,296 +107,137 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
     setErrors([]);
   };
 
-  const handleFormChange = (field: string, value: any) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
+  const validateForm = () => {
+    const errs: string[] = [];
+
+    if (!formData.question_ru.trim()) errs.push('Вопрос на русском обязателен');
+    if (!formData.question_kg.trim()) errs.push('Вопрос на кыргызском обязателен');
+
+    if (formData.type === 'logic') {
+      formData.options_ru.forEach((o, i) => {
+        if (!o.trim()) errs.push(`Вариант ${i + 1} (RU) обязателен`);
+      });
+      formData.options_kg.forEach((o, i) => {
+        if (!o.trim()) errs.push(`Вариант ${i + 1} (KG) обязателен`);
+      });
+    } else {
+      if (!formData.correct_answer.trim()) {
+        errs.push('Ожидаемый ответ обязателен');
+      }
+    }
+
+    setErrors(errs);
+    return errs.length === 0;
   };
 
-  const handleOptionChange = (lang: 'ru' | 'kg', index: number, value: string) => {
-    const newOptions = [...formData[`options_${lang}` as keyof typeof formData] as string[]];
-    newOptions[index] = value;
-    
-    setFormData({
-      ...formData,
-      [`options_${lang}`]: newOptions,
-    });
+const handleSubmit = () => {
+  if (!validateForm()) return;
+
+  const submitData = {
+    level: formData.level,          // 🔥 MAP ЖОК
+    type: formData.type,            // 🔥 MAP ЖОК
+    question_ru: formData.question_ru.trim(),
+    question_kg: formData.question_kg.trim(),
+    options_ru: formData.type === 'logic' ? formData.options_ru : [],
+    options_kg: formData.type === 'logic' ? formData.options_kg : [],
+    correct_answer:
+      formData.type === 'logic'
+        ? formData.options_ru[correctOptionIndex]
+        : formData.correct_answer.trim(),
+  };
+
+  console.log('SEND:', submitData); // 👈 ОБЯЗАТЕЛЬНО
+
+  onSubmit(submitData);
+};
+
+
+  const handleOptionChange = (
+    lang: 'ru' | 'kg',
+    index: number,
+    value: string
+  ) => {
+    const key = `options_${lang}` as 'options_ru' | 'options_kg';
+    const arr = [...formData[key]];
+    arr[index] = value;
+    setFormData({ ...formData, [key]: arr });
   };
 
   const handleAddOption = (lang: 'ru' | 'kg') => {
-    const currentOptions = formData[`options_${lang}` as keyof typeof formData] as string[];
-    const newOptions = [...currentOptions, ''];
-    setFormData({
-      ...formData,
-      [`options_${lang}`]: newOptions,
-    });
+    const key = `options_${lang}` as 'options_ru' | 'options_kg';
+    setFormData({ ...formData, [key]: [...formData[key], ''] });
   };
 
   const handleRemoveOption = (lang: 'ru' | 'kg', index: number) => {
-    const currentOptions = formData[`options_${lang}` as keyof typeof formData] as string[];
-    const newOptions = [...currentOptions];
-    newOptions.splice(index, 1);
-    
-    setFormData({
-      ...formData,
-      [`options_${lang}`]: newOptions,
-    });
-    
-    if (index === correctOptionIndex) {
-      setCorrectOptionIndex(0);
-    }
-  };
-
-  const handleSubmit = () => {
-    const correctAnswer = (formData.options_ru[correctOptionIndex] || formData.options_kg[correctOptionIndex]) || '';
-    
-    onSubmit({
-      ...formData,
-      correct_answer: correctAnswer,
-    });
-    
-    resetForm();
-    onClose();
+    const key = `options_${lang}` as 'options_ru' | 'options_kg';
+    const arr = [...formData[key]];
+    arr.splice(index, 1);
+    setFormData({ ...formData, [key]: arr });
+    if (index === correctOptionIndex) setCorrectOptionIndex(0);
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {editingQuestion ? 'Редактировать вопрос' : 'Добавить вопрос'}
+        {editingQuestion ? 'Редактировать вопрос' : 'Создать вопрос'}
       </DialogTitle>
-      
-      <DialogContent>
-        <Box sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Уровень"
-                value={formData.level}
-                onChange={(e) => handleFormChange('level', e.target.value)}
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="easy">Легкий</MenuItem>
-                <MenuItem value="medium">Средний</MenuItem>
-              </TextField>
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Тип вопроса"
-                value={formData.type}
-                onChange={(e) => handleFormChange('type', e.target.value)}
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="logic">Логический</MenuItem>
-                <MenuItem value="motivational">Мотивационный</MenuItem>
-              </TextField>
-            </Grid>
-          </Grid>
 
-          <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-            Вопрос на русском языке
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.question_ru}
-            onChange={(e) => handleFormChange('question_ru', e.target.value)}
-            sx={{ mb: 3 }}
-          />
-
-          <Typography variant="subtitle1" gutterBottom>
-            Вопрос на кыргызском языке
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            value={formData.question_kg}
-            onChange={(e) => handleFormChange('question_kg', e.target.value)}
-            sx={{ mb: 3 }}
-          />
-
-          <Divider sx={{ my: 2 }} />
-
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Варианты ответов (русский)
-                  </Typography>
-                  <Button
-                    startIcon={<Add />}
-                    onClick={() => handleAddOption('ru')}
-                    size="small"
-                  >
-                    Добавить
-                  </Button>
-                </Box>
-                
-                <FormControl component="fieldset" fullWidth>
-                  <FormLabel>Выберите правильный ответ:</FormLabel>
-                  <RadioGroup
-                    value={correctOptionIndex}
-                    onChange={(e) => setCorrectOptionIndex(parseInt(e.target.value))}
-                  >
-                    {formData.options_ru.map((option, index) => (
-                      <Box 
-                        key={index} 
-                        sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          mb: 1,
-                          p: 1,
-                          border: '1px solid',
-                          borderColor: correctOptionIndex === index ? 'primary.main' : 'grey.300',
-                          borderRadius: 1,
-                          bgcolor: correctOptionIndex === index ? 'primary.50' : 'transparent',
-                        }}
-                      >
-                        <FormControlLabel
-                          value={index}
-                          control={<Radio />}
-                          label=""
-                          sx={{ m: 0, mr: 1 }}
-                        />
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={option}
-                          onChange={(e) => handleOptionChange('ru', index, e.target.value)}
-                        />
-                        {formData.options_ru.length > 2 && (
-                          <IconButton
-                            size="small"
-                            onClick={() => handleRemoveOption('ru', index)}
-                            sx={{ ml: 1 }}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        )}
-                        {correctOptionIndex === index && (
-                          <CheckCircle color="success" sx={{ ml: 1 }} />
-                        )}
-                      </Box>
-                    ))}
-                  </RadioGroup>
-                </FormControl>
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Жооп варианттары (кыргызча)
-                  </Typography>
-                  <Button
-                    startIcon={<Add />}
-                    onClick={() => handleAddOption('kg')}
-                    size="small"
-                  >
-                    Кошуу
-                  </Button>
-                </Box>
-                
-                {formData.options_kg.map((option, index) => (
-                  <Box 
-                    key={index} 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      mb: 1,
-                      p: 1,
-                      border: '1px solid',
-                      borderColor: 'grey.300',
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Box sx={{ 
-                      width: 24, 
-                      height: 24, 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      mr: 1,
-                      color: correctOptionIndex === index ? 'success.main' : 'text.secondary'
-                    }}>
-                      {correctOptionIndex === index ? (
-                        <CheckCircle fontSize="small" />
-                      ) : (
-                        <Cancel fontSize="small" />
-                      )}
-                    </Box>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={option}
-                      onChange={(e) => handleOptionChange('kg', index, e.target.value)}
-                    />
-                    {formData.options_kg.length > 2 && (
-                      <IconButton
-                        size="small"
-                        onClick={() => handleRemoveOption('kg', index)}
-                        sx={{ ml: 1 }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    )}
-                  </Box>
-                ))}
-              </Box>
-            </Grid>
-          </Grid>
-
-          <Alert severity="info" icon={<CheckCircle />}>
-            <Typography variant="subtitle2" gutterBottom>
-              Правильный ответ:
-            </Typography>
-            <Typography>
-              Русский: <strong>{formData.options_ru[correctOptionIndex] || 'Не указан'}</strong>
-            </Typography>
-            <Typography>
-              Кыргызский: <strong>{formData.options_kg[correctOptionIndex] || 'Көрсөтүлгөн эмес'}</strong>
-            </Typography>
+      <DialogContent dividers>
+        {errors.length > 0 && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errors.map((e, i) => (
+              <div key={i}>• {e}</div>
+            ))}
           </Alert>
-        </Box>
+        )}
+
+        <Grid container spacing={3}>
+          <Grid item xs={6}>
+            <TextField
+              select
+              fullWidth
+              label="Уровень"
+              value={formData.level}
+              onChange={(e) =>
+                setFormData({ ...formData, level: e.target.value })
+              }
+            >
+              <MenuItem value="easy">Легкий</MenuItem>
+              <MenuItem value="medium">Средний</MenuItem>
+            </TextField>
+          </Grid>
+
+          <Grid item xs={6}>
+            <TextField
+              select
+              fullWidth
+              label="Тип"
+              value={formData.type}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
+            >
+              <MenuItem value="logic">Логический</MenuItem>
+              <MenuItem value="motivational">Текстовый</MenuItem>
+            </TextField>
+          </Grid>
+        </Grid>
       </DialogContent>
-      
-      <DialogActions sx={{ p: 3 }}>
+
+      <DialogActions>
         {editingQuestion && onDelete && (
           <Button
             color="error"
-            onClick={() => {
-              if (window.confirm('Удалить этот вопрос?')) {
-                onDelete(editingQuestion.id);
-                onClose();
-              }
-            }}
+            onClick={() => onDelete(editingQuestion.id)}
             startIcon={<Delete />}
           >
             Удалить
           </Button>
         )}
-        
         <Box sx={{ flex: 1 }} />
-        
-        <Button onClick={onClose} color="inherit">
-          Отмена
-        </Button>
-        
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          startIcon={<CheckCircle />}
-        >
-          {editingQuestion ? 'Сохранить' : 'Создать'}
+        <Button onClick={onClose}>Отмена</Button>
+        <Button variant="contained" onClick={handleSubmit}>
+          Сохранить
         </Button>
       </DialogActions>
     </Dialog>
