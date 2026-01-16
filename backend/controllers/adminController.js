@@ -1,32 +1,30 @@
-// backend/controllers/adminController.js
 const db = require('../config/db');
 
 // Dashboard Statistics
 const getDashboardStats = async (req, res) => {
   try {
-    // Get counts
     const [usersResult, questionsResult, resultsResult] = await Promise.all([
       db.query('SELECT COUNT(*) as count FROM users'),
       db.query('SELECT COUNT(*) as count FROM questions WHERE is_active = true'),
       db.query('SELECT COUNT(*) as count FROM results'),
     ]);
 
-    // Get average score
     const avgScoreResult = await db.query(
       'SELECT AVG(percentage) as avg_score FROM results WHERE percentage > 0'
     );
 
-    // Get level distribution
     const levelDistribution = await db.query(`
       SELECT color_level, COUNT(*) as count 
       FROM results 
-      GROUP BY color_level 
-      ORDER BY 
-        CASE color_level 
-          WHEN 'high' THEN 1
-          WHEN 'medium' THEN 2
-          WHEN 'weak' THEN 3
-        END
+      GROUP BY color_level
+    `);
+
+    const recentResults = await db.query(`
+      SELECT r.*, u.full_name, u.email 
+      FROM results r
+      JOIN users u ON r.user_id = u.id
+      ORDER BY r.completed_at DESC 
+      LIMIT 10
     `);
 
     res.json({
@@ -35,6 +33,7 @@ const getDashboardStats = async (req, res) => {
       totalTests: parseInt(resultsResult.rows[0].count),
       avgScore: Math.round(avgScoreResult.rows[0].avg_score || 0),
       levelDistribution: levelDistribution.rows,
+      recentResults: recentResults.rows,
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
@@ -46,7 +45,7 @@ const getDashboardStats = async (req, res) => {
 const getAllQuestions = async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM questions ORDER BY id DESC'
+      'SELECT * FROM questions ORDER BY created_at DESC'
     );
     res.json(result.rows);
   } catch (error) {
@@ -59,12 +58,27 @@ const createQuestion = async (req, res) => {
   try {
     const { level, type, question_ru, question_kg, options_ru, options_kg, correct_answer } = req.body;
 
+    // Validate based on question type
+    if (type === 'logic') {
+      if (!options_ru || !options_kg || options_ru.length !== 4 || options_kg.length !== 4) {
+        return res.status(400).json({ error: 'Logic questions require 4 options' });
+      }
+    }
+
     const result = await db.query(
       `INSERT INTO questions 
        (level, type, question_ru, question_kg, options_ru, options_kg, correct_answer) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
-      [level, type, question_ru, question_kg, JSON.stringify(options_ru), JSON.stringify(options_kg), correct_answer]
+      [
+        level, 
+        type, 
+        question_ru, 
+        question_kg, 
+        type === 'logic' ? JSON.stringify(options_ru) : null,
+        type === 'logic' ? JSON.stringify(options_kg) : null,
+        correct_answer
+      ]
     );
 
     res.status(201).json({
@@ -72,8 +86,8 @@ const createQuestion = async (req, res) => {
       question: result.rows[0]
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Create question error:', error);
+    res.status(500).json({ error: 'Server error: ' + error.message });
   }
 };
 
@@ -88,7 +102,16 @@ const updateQuestion = async (req, res) => {
            options_ru = $5, options_kg = $6, correct_answer = $7, updated_at = NOW()
        WHERE id = $8 
        RETURNING *`,
-      [level, type, question_ru, question_kg, JSON.stringify(options_ru), JSON.stringify(options_kg), correct_answer, id]
+      [
+        level, 
+        type, 
+        question_ru, 
+        question_kg, 
+        type === 'logic' ? JSON.stringify(options_ru) : null,
+        type === 'logic' ? JSON.stringify(options_kg) : null,
+        correct_answer, 
+        id
+      ]
     );
 
     if (result.rows.length === 0) {
@@ -118,7 +141,23 @@ const deleteQuestion = async (req, res) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
-    res.json({ message: 'Question deleted successfully' });
+    res.json({ 
+      message: 'Question deleted successfully',
+      deletedId: result.rows[0].id
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Test History
+const getTestHistory = async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT * FROM results ORDER BY completed_at DESC'
+    );
+    res.json(result.rows);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
@@ -156,26 +195,12 @@ const getAllResults = async (req, res) => {
   }
 };
 
-
-// История тестов
-const getTestHistory = async (req, res) => {
+// Test Settings Management
+const getTestSettings = async (req, res) => {
   try {
-    const result = await db.query(`
-      SELECT 
-        r.id,
-        u.full_name,
-        u.email,
-        r.level,
-        r.completed_at,
-        r.score,
-        r.percentage,
-        r.color_level,
-        jsonb_array_length(r.answers) as total_questions
-      FROM results r
-      JOIN users u ON r.user_id = u.id
-      ORDER BY r.completed_at DESC
-    `);
-    
+    const result = await db.query(
+      'SELECT * FROM test_settings ORDER BY level'
+    );
     res.json(result.rows);
   } catch (error) {
     console.error(error);
@@ -183,20 +208,41 @@ const getTestHistory = async (req, res) => {
   }
 };
 
-// Экспорттоо
+const updateTestSettings = async (req, res) => {
+  try {
+    const { level, question_count, time_minutes } = req.body;
+
+    const result = await db.query(
+      `UPDATE test_settings 
+       SET question_count = $1, time_minutes = $2, updated_at = NOW()
+       WHERE level = $3 
+       RETURNING *`,
+      [question_count, time_minutes, level]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Test setting not found' });
+    }
+
+    res.json({
+      message: 'Test settings updated successfully',
+      setting: result.rows[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = {
-  // Dashboard
   getDashboardStats,
-  
-  // Questions
   getAllQuestions,
   createQuestion,
   updateQuestion,
   deleteQuestion,
-  
-  // Users
+  getTestHistory,
   getAllUsers,
-  
-  // Results
   getAllResults,
+  getTestSettings,
+  updateTestSettings,
 };

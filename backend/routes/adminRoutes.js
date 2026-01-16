@@ -1,4 +1,3 @@
-// backend/routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
 const {
@@ -7,28 +6,37 @@ const {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  getTestHistory,
   getAllUsers,
   getAllResults,
+  getTestSettings,
+  updateTestSettings,
 } = require('../controllers/adminController');
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
 
-// All admin routes require authentication and admin role
 router.use(authMiddleware);
 router.use(adminMiddleware);
 
 // Dashboard
 router.get('/dashboard', getDashboardStats);
 
-// Questions management
+// Questions
 router.get('/questions', getAllQuestions);
 router.post('/questions', createQuestion);
 router.put('/questions/:id', updateQuestion);
 router.delete('/questions/:id', deleteQuestion);
 
-// Users management
+// Test History
+router.get('/history', getTestHistory);
+
+// Users
 router.get('/users', getAllUsers);
 
-// Results management
+// Results
 router.get('/results', getAllResults);
+
+// Test Settings
+router.get('/settings', getTestSettings);
+router.put('/settings', updateTestSettings);
 
 module.exports = router;

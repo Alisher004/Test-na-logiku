@@ -28,17 +28,17 @@ const Register: React.FC = () => {
     e.preventDefault();
     
     if (!fullName || !email || !password || !confirmPassword) {
-      setError('Пожалуйста, заполните все поля');
+      setError(t('fillAllFields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Пароли не совпадают');
+      setError(t('passwordsMismatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Пароль должен содержать минимум 6 символов');
+      setError(t('passwordTooShort'));
       return;
     }
 
@@ -115,7 +115,7 @@ const Register: React.FC = () => {
             disabled={loading}
             sx={{ mt: 3, mb: 2 }}
           >
-            {loading ? 'Регистрация...' : t('register')}
+            {loading ? t('registrationLoading') : t('register')}
           </Button>
 
           <Box textAlign="center">
