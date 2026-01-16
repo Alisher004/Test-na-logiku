@@ -124,6 +124,8 @@ const resources = {
       languageLabel: "Язык",
       logicQuestions: "логических вопросов",
       minutes: "минут",
+      questionTitle1: "вопрос на русском",
+      questionTitle2: "вопрос на кыргызском",
     },
   },
   kg: {
@@ -248,6 +250,8 @@ const resources = {
       loginRequired: "Тестти баштоо үчүн алгач катталуу же кирүү керек",
       selectedLevelLabel: "Тандалган деңгээл",
       languageLabel: "Тил",
+      questionTitle1: "орусча суроо",
+      questionTitle2: "кыргызча суроо",
     },
   },
 };
