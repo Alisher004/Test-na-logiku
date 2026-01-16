@@ -155,7 +155,7 @@ const deleteQuestion = async (req, res) => {
 const getTestHistory = async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM test_history ORDER BY completed_at DESC'
+      'SELECT * FROM results ORDER BY completed_at DESC'
     );
     res.json(result.rows);
   } catch (error) {
