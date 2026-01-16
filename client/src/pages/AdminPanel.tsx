@@ -51,6 +51,8 @@ interface Question {
   options_ru: string[];
   options_kg: string[];
   correct_answer: string;
+  image_file?: string;
+  image_filename?: string;
   created_at: string;
 }
 
@@ -80,6 +82,7 @@ interface Result {
   percentage: number;
   color_level: string;
   completed_at: string;
+  total_questions?: number;
   answers?: Answer[];
 }
 
@@ -88,6 +91,7 @@ const AdminPanel: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [results, setResults] = useState<Result[]>([]);
+  const [testSettings, setTestSettings] = useState<any[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [error, setError] = useState('');
@@ -112,6 +116,8 @@ const AdminPanel: React.FC = () => {
     options_kg: ['', '', '', ''],
     correct_answer: '',
     correct_index: null as number | null,
+    imageFile: null as File | null,
+    imageFilename: '',
   });
 
   // JSON маалыматты массивге айландыруучу функция
@@ -152,10 +158,11 @@ const AdminPanel: React.FC = () => {
     setLoading(true);
     try {
       if (tab === 0) {
-        const [usersRes, questionsRes, resultsRes] = await Promise.all([
+        const [usersRes, questionsRes, resultsRes, settingsRes] = await Promise.all([
           api.get('/admin/users'),
           api.get('/admin/questions'),
           api.get('/admin/results'),
+          api.get('/admin/settings'),
         ]);
         
         // Суроолорду форматтоо
@@ -168,6 +175,12 @@ const AdminPanel: React.FC = () => {
         setUsers(usersRes.data);
         setQuestions(formattedQuestions);
         setResults(resultsRes.data);
+        // Add default question_count for backward compatibility
+        const settingsWithDefaults = settingsRes.data.map((setting: any) => ({
+          ...setting,
+          question_count: setting.question_count || 15
+        }));
+        setTestSettings(settingsWithDefaults);
         
         const avgScore = resultsRes.data.length > 0 
           ? resultsRes.data.reduce((sum: number, r: Result) => sum + r.percentage, 0) / resultsRes.data.length
@@ -232,6 +245,8 @@ const AdminPanel: React.FC = () => {
         options_kg: question.options_kg.length ? question.options_kg : ['', '', '', ''],
         correct_answer: question.correct_answer,
         correct_index: correctIndex,
+        imageFile: null,
+        imageFilename: question.image_filename || '',
       });
     } else {
       setEditingQuestion(null);
@@ -244,6 +259,8 @@ const AdminPanel: React.FC = () => {
         options_kg: ['', '', '', ''],
         correct_answer: '',
         correct_index: null,
+        imageFile: null,
+        imageFilename: '',
       });
     }
     setOpenDialog(true);
@@ -401,7 +418,7 @@ const AdminPanel: React.FC = () => {
 
     try {
       // Prepare data for API
-      const { correct_index, ...rest } = formData as any;
+      const { correct_index, imageFile, ...rest } = formData as any;
       const dataToSend = {
         ...rest,
         correct_answer: correctAnswer.trim(),
@@ -424,13 +441,42 @@ const AdminPanel: React.FC = () => {
 
       console.log('Sending question data:', dataToSend); // Debug үчүн
 
-      if (editingQuestion) {
-        await api.put(`/admin/questions/${editingQuestion.id}`, dataToSend);
-        setSuccess(t('questionUpdated'));
+      let response;
+      if (imageFile) {
+        // Use FormData for file upload
+        const formDataToSend = new FormData();
+        Object.keys(dataToSend).forEach(key => {
+          if (dataToSend[key] !== null && dataToSend[key] !== undefined) {
+            if (Array.isArray(dataToSend[key])) {
+              formDataToSend.append(key, JSON.stringify(dataToSend[key]));
+            } else {
+              formDataToSend.append(key, dataToSend[key]);
+            }
+          }
+        });
+        formDataToSend.append('image', imageFile);
+
+        const config = {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        };
+
+        if (editingQuestion) {
+          response = await api.put(`/admin/questions/${editingQuestion.id}`, formDataToSend, config);
+        } else {
+          response = await api.post('/admin/questions', formDataToSend, config);
+        }
       } else {
-        await api.post('/admin/questions', dataToSend);
-        setSuccess(t('questionCreated'));
+        // Regular JSON request
+        if (editingQuestion) {
+          response = await api.put(`/admin/questions/${editingQuestion.id}`, dataToSend);
+        } else {
+          response = await api.post('/admin/questions', dataToSend);
+        }
       }
+
+      setSuccess(editingQuestion ? t('questionUpdated') : t('questionCreated'));
       
       handleCloseDialog();
       fetchData();
@@ -635,33 +681,66 @@ const AdminPanel: React.FC = () => {
                               <TableCell align="right">Уровень</TableCell>
                               <TableCell align="right">Результат</TableCell>
                               <TableCell align="right">Дата</TableCell>
+                              <TableCell align="right">Детали</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {results.slice(0, 5).map((result) => (
-                              <TableRow key={result.id} hover>
-                                <TableCell>
-                                  <Typography variant="body2">
-                                    {result.full_name}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {result.email}
-                                  </Typography>
-                                </TableCell>
-                                <TableCell align="right">
-                                  {result.level === 'easy' ? 'Легкий' : 'Средний'}
-                                </TableCell>
-                                <TableCell align="right">
-                                  <Chip 
-                                    label={`${result.percentage}%`}
-                                    color={getLevelColor(result.color_level) as any}
-                                    size="small"
-                                  />
-                                </TableCell>
-                                <TableCell align="right">
-                                  {new Date(result.completed_at).toLocaleDateString(locale)}
-                                </TableCell>
-                              </TableRow>
+                              <React.Fragment key={result.id}>
+                                <TableRow hover>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {result.full_name}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {result.email}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {result.level === 'easy' ? 'Легкий' : 'Средний'}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Chip 
+                                      label={`${result.percentage}%`}
+                                      color={getLevelColor(result.color_level) as any}
+                                      size="small"
+                                    />
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {new Date(result.completed_at).toLocaleDateString(locale)}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => toggleResultDetails(result.id)}
+                                    >
+                                      {expandedResult === result.id ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                  </TableCell>
+                                </TableRow>
+                                {expandedResult === result.id && result.answers && (
+                                  <TableRow>
+                                    <TableCell colSpan={5} sx={{ py: 0 }}>
+                                      <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                                        <Typography variant="subtitle2" gutterBottom>
+                                          Детали ответов:
+                                        </Typography>
+                                        {result.answers.map((answer, index) => (
+                                          <Box key={index} sx={{ mb: 1 }}>
+                                            <Typography variant="body2">
+                                              <strong>Вопрос {index + 1}:</strong> {answer.question_text_ru}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                              Дан ответ: {answer.given_answer} | Правильный: {answer.correct_answer}
+                                              {answer.given_answer === answer.correct_answer ? ' ✓' : ' ✗'}
+                                            </Typography>
+                                          </Box>
+                                        ))}
+                                      </Box>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </React.Fragment>
                             ))}
                           </TableBody>
                         </Table>
@@ -721,6 +800,58 @@ const AdminPanel: React.FC = () => {
                 </Card>
               </Grid>
             </Grid>
+
+            {/* Test Settings */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Настройки тестов
+              </Typography>
+              <Grid container spacing={2}>
+                {testSettings.map((setting) => (
+                  <Grid item xs={12} sm={6} key={setting.level}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="subtitle1" gutterBottom>
+                          {setting.level === 'easy' ? 'Легкий уровень' : 'Средний уровень'}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                          <TextField
+                            label="Время (минуты)"
+                            type="number"
+                            size="small"
+                            value={setting.time_minutes}
+                            onChange={(e) => {
+                              const newSettings = testSettings.map(s => 
+                                s.level === setting.level 
+                                  ? { ...s, time_minutes: parseInt(e.target.value) || 0 }
+                                  : s
+                              );
+                              setTestSettings(newSettings);
+                            }}
+                            sx={{ width: 120 }}
+                          />
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={async () => {
+                              try {
+                                await api.put('/admin/settings', testSettings);
+                                setSuccess('Настройки сохранены');
+                                setTimeout(() => setSuccess(''), 3000);
+                              } catch (err: any) {
+                                setError('Ошибка сохранения настроек');
+                              }
+                            }}
+                          >
+                            Сохранить
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
           </Box>
         )}
 
@@ -948,7 +1079,9 @@ const AdminPanel: React.FC = () => {
                           <TableCell>
                             {result.level === 'easy' ? t('levelEasy') : t('levelMedium')}
                           </TableCell>
-                          <TableCell align="right">{result.score}/10</TableCell>
+                          <TableCell align="right">
+                            {result.score}/{result.total_questions || result.answers?.length || 10}
+                          </TableCell>
                           <TableCell align="right">{result.percentage}%</TableCell>
                           <TableCell>
                             <Chip 
@@ -1051,7 +1184,7 @@ const AdminPanel: React.FC = () => {
             </Grid>
 
             <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
-              {t('questionRuTitle')}
+              {t('questionTitle1')}
             </Typography>
             <TextField
               fullWidth
@@ -1066,7 +1199,7 @@ const AdminPanel: React.FC = () => {
             />
 
             <Typography variant="subtitle1" gutterBottom>
-              {t('questionKgTitle')}
+              {t('questionTitle2')}
             </Typography>
             <TextField
               fullWidth
@@ -1079,6 +1212,49 @@ const AdminPanel: React.FC = () => {
               error={!formData.question_kg.trim()}
               helperText={!formData.question_kg.trim() ? t('requiredField') : ''}
             />
+
+            {/* Image Upload Section */}
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
+              Изображение (необязательно)
+            </Typography>
+            <Box sx={{ mb: 3 }}>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="image-upload"
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFormData({
+                      ...formData,
+                      imageFile: file,
+                      imageFilename: file.name
+                    });
+                  }
+                }}
+              />
+              <label htmlFor="image-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  startIcon={<Add />}
+                  sx={{ mr: 2 }}
+                >
+                  Выбрать изображение
+                </Button>
+              </label>
+              {formData.imageFilename && (
+                <Typography variant="body2" color="text.secondary">
+                  Выбрано: {formData.imageFilename}
+                </Typography>
+              )}
+              {editingQuestion?.image_filename && !formData.imageFile && (
+                <Typography variant="body2" color="text.secondary">
+                  Текущее изображение: {editingQuestion.image_filename}
+                </Typography>
+              )}
+            </Box>
 
             {formData.type === 'logic' && (
               <>

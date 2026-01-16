@@ -5,26 +5,20 @@ const getQuestions = async (req, res) => {
     const { level } = req.params;
     const lang = req.query.lang || 'ru';
 
-    // Get test settings for this level
-    const settingsResult = await db.query(
-      'SELECT question_count FROM test_settings WHERE level = $1',
-      [level]
-    );
-    
-    const questionCount = settingsResult.rows[0]?.question_count || 15;
-
+    // Get all active questions for this level (no limit - use all available questions)
     const result = await db.query(
       `SELECT id, 
               level, 
               type,
               ${lang === 'kg' ? 'question_kg as question' : 'question_ru as question'},
               ${lang === 'kg' ? 'options_kg as options' : 'options_ru as options'},
-              correct_answer
+              correct_answer,
+              CASE WHEN image_file IS NOT NULL THEN CONCAT('/api/questions/', id, '/image') ELSE NULL END as image_url,
+              image_filename
        FROM questions 
        WHERE level = $1 AND is_active = true 
-       ORDER BY RANDOM() 
-       LIMIT $2`,
-      [level, questionCount]
+       ORDER BY RANDOM()`,
+      [level]
     );
 
     const questions = result.rows.map(q => {
@@ -61,27 +55,24 @@ const submitTest = async (req, res) => {
     }
 
     const questionsResult = await db.query(
-      'SELECT id, correct_answer, type FROM questions WHERE level = $1',
+      'SELECT id, correct_answer, type FROM questions WHERE level = $1 AND is_active = true',
       [level]
     );
 
     const questions = questionsResult.rows;
+    const totalQuestions = questions.length;
     
     let correctCount = 0;
-    let totalLogicQuestions = 0;
     
     answers.forEach(answer => {
       const question = questions.find(q => q.id === answer.questionId);
-      if (question && question.type === 'logic') {
-        totalLogicQuestions++;
-        if (answer.answer === question.correct_answer) {
-          correctCount++;
-        }
+      if (question && answer.answer === question.correct_answer) {
+        correctCount++;
       }
     });
 
-    const percentage = totalLogicQuestions > 0 
-      ? Math.round((correctCount / totalLogicQuestions) * 100) 
+    const percentage = totalQuestions > 0 
+      ? Math.round((correctCount / totalQuestions) * 100) 
       : 0;
 
     let colorLevel = '';
@@ -103,7 +94,7 @@ const submitTest = async (req, res) => {
         score: correctCount,
         percentage,
         colorLevel,
-        totalQuestions: answers.length,
+        totalQuestions: totalQuestions,
         correctAnswers: correctCount,
         testTime: testTime
       }

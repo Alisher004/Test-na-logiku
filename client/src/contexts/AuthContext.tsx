@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   register: (full_name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       console.log('Login request to:', `${API_BASE_URL}/auth/login`);
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
@@ -77,6 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('token', token);
       setToken(token);
       setUser(user);
+      return user;
     } catch (error: any) {
       console.error('Login error:', error.response?.config?.url);
       throw new Error(error.response?.data?.error || 'Login failed');

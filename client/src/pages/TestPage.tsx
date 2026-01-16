@@ -24,6 +24,8 @@ interface Question {
   question: string;
   options: string[];
   type: string; // 'single', 'multiple', 'text', 'motivational'
+  image_url?: string;
+  image_filename?: string;
 }
 
 const TestPage: React.FC = () => {
@@ -66,6 +68,7 @@ const TestPage: React.FC = () => {
         type: q.type || 'single'
       }));
       
+      console.log('Fetched questions:', validatedQuestions);
       setQuestions(validatedQuestions);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load questions');
@@ -195,6 +198,25 @@ const TestPage: React.FC = () => {
               {currentQ.question}
             </Typography>
 
+            {currentQ.image_url && (
+              <Box sx={{ mb: 3, textAlign: 'center' }}>
+                <img 
+                  src={`http://localhost:5001${currentQ.image_url}`}
+                  alt="Question illustration"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '300px', 
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                  onError={(e) => {
+                    console.error('Image failed to load:', e.currentTarget.src);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </Box>
+            )}
+
             {currentQ.type === 'motivational' || currentQ.type === 'text' ? (
               <Box sx={{ mt: 3 }}>
                 <TextField
@@ -237,13 +259,6 @@ const TestPage: React.FC = () => {
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button
-                variant="outlined"
-                disabled={currentQuestion === 0}
-                onClick={() => setCurrentQuestion(currentQuestion - 1)}
-              >
-                Предыдущий
-              </Button>
 
               {currentQuestion === questions.length - 1 ? (
                 <Button

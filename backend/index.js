@@ -1,6 +1,7 @@
 // backend/index.js
 const express = require('express');
 const dotenv = require('dotenv');
+const db = require('./config/db');
 
 dotenv.config();
 
@@ -47,6 +48,47 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 // Simple test endpoint
 app.get('/api/test', (req, res) => {
   res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
+});
+
+// Get question image
+app.get('/api/questions/:id/image', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Getting image for question:', id);
+    const result = await db.query('SELECT image_file, image_filename FROM questions WHERE id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      console.log('Question not found');
+      return res.status(404).json({ error: 'Question not found' });
+    }
+    
+    if (!result.rows[0].image_file) {
+      console.log('No image file');
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    const { image_file, image_filename } = result.rows[0];
+    console.log('Image found, size:', image_file.length, 'filename:', image_filename);
+    
+    // Determine content type based on file extension
+    let contentType = 'image/jpeg';
+    if (image_filename) {
+      const ext = image_filename.toLowerCase().split('.').pop();
+      if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'gif') contentType = 'image/gif';
+      else if (ext === 'webp') contentType = 'image/webp';
+    }
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(image_filename)}`);
+    
+    // Send the buffer directly
+    res.end(image_file);
+  } catch (error) {
+    console.error('Error serving image:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.listen(PORT, () => {
