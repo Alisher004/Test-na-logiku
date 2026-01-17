@@ -5,6 +5,14 @@ const getQuestions = async (req, res) => {
     const { level } = req.params;
     const lang = req.query.lang || 'ru';
 
+    // Get test time from settings
+    const settingsResult = await db.query(
+      'SELECT time_minutes FROM test_settings WHERE level = $1',
+      [level]
+    );
+    
+    const timeMinutes = settingsResult.rows[0]?.time_minutes || 20;
+
     // Get all active questions for this level (no limit - use all available questions)
     const result = await db.query(
       `SELECT id, 
@@ -26,7 +34,7 @@ const getQuestions = async (req, res) => {
       return question;
     });
 
-    res.json(questions);
+    res.json({ questions, timeMinutes });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
@@ -35,7 +43,7 @@ const getQuestions = async (req, res) => {
 
 const submitTest = async (req, res) => {
   try {
-    const { userId, level, answers } = req.body;
+    const { userId, level, answers, startTime } = req.body;
 
     // Get test time from settings
     const settingsResult = await db.query(
@@ -45,13 +53,20 @@ const submitTest = async (req, res) => {
     
     const testTime = settingsResult.rows[0]?.time_minutes || 20;
 
+    // Check if time expired
+    const currentTime = Date.now();
+    const elapsed = (currentTime - startTime) / 1000 / 60; // minutes
+    if (elapsed > testTime) {
+      return res.status(400).json({ error: 'Время теста истекло' });
+    }
+
     const existingResult = await db.query(
       'SELECT * FROM results WHERE user_id = $1 AND level = $2',
       [userId, level]
     );
 
     if (existingResult.rows.length > 0) {
-      return res.status(400).json({ error: 'Test already completed for this level' });
+      return res.status(400).json({ error: 'Тест уже пройден для этого уровня' });
     }
 
     const questionsResult = await db.query(
@@ -110,7 +125,8 @@ const getResults = async (req, res) => {
     const { userId } = req.params;
 
     const result = await db.query(
-      `SELECT r.*, u.full_name, u.email 
+      `SELECT r.*, u.full_name, u.email,
+       (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
        FROM results r
        JOIN users u ON r.user_id = u.id
        WHERE r.user_id = $1

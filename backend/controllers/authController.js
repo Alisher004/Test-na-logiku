@@ -4,7 +4,7 @@ const db = require('../config/db');
 
 const register = async (req, res) => {
   try {
-    const { full_name, email, password } = req.body;
+    const { full_name, email, password, phone_number } = req.body;
 
     // Check if user exists
     const userCheck = await db.query(
@@ -13,7 +13,7 @@ const register = async (req, res) => {
     );
 
     if (userCheck.rows.length > 0) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(400).json({ error: 'Пользователь уже существует' });
     }
 
     // Hash password
@@ -21,8 +21,8 @@ const register = async (req, res) => {
 
     // Create user
     const result = await db.query(
-      'INSERT INTO users (full_name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, full_name, email, role',
-      [full_name, email, hashedPassword, 'student']
+      'INSERT INTO users (full_name, email, password, phone_number, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, full_name, email, phone_number, role',
+      [full_name, email, hashedPassword, phone_number, 'student']
     );
 
     // Generate token
@@ -54,7 +54,7 @@ const login = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Неверные учетные данные' });
     }
 
     const user = result.rows[0];
@@ -62,7 +62,7 @@ const login = async (req, res) => {
     // Check password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Неверные учетные данные' });
     }
 
     // Generate token

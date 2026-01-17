@@ -16,7 +16,7 @@ const Register: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -27,13 +27,8 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !phoneNumber) {
       setError(t('fillAllFields'));
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError(t('passwordsMismatch'));
       return;
     }
 
@@ -45,7 +40,7 @@ const Register: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      await register(fullName, email, password);
+      await register(fullName, email, password, phoneNumber);
       navigate('/');
     } catch (err: any) {
       setError(err.message);
@@ -99,10 +94,10 @@ const Register: React.FC = () => {
 
           <TextField
             fullWidth
-            label={t('confirmPassword')}
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            label={t('phoneNumber')}
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
             margin="normal"
             required
           />

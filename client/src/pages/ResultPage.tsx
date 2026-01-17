@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Container,
   Typography,
@@ -21,11 +21,11 @@ import {
   Alert,
   IconButton,
   Tooltip,
-} from '@mui/material';
-import { useTranslation } from 'react-i18next';
-import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { Download, Visibility, Print } from '@mui/icons-material';
+} from "@mui/material";
+import { useTranslation } from "react-i18next";
+import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import { Download, Visibility, Print } from "@mui/icons-material";
 
 interface Result {
   id: number;
@@ -37,6 +37,7 @@ interface Result {
   user_id: number;
   full_name?: string;
   email?: string;
+  total_questions: number;
 }
 
 interface HistoryItem extends Result {
@@ -50,11 +51,11 @@ const ResultPage: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
-  const locale = i18n.language === 'kg' ? 'ky-KG' : 'ru-RU';
+  const locale = i18n.language === "kg" ? "ky-KG" : "ru-RU";
 
   useEffect(() => {
     fetchResults();
@@ -63,24 +64,24 @@ const ResultPage: React.FC = () => {
   const fetchResults = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       // Личные результаты
       const myResultsResponse = await api.get(`/test/results/${user?.id}`);
       setResults(myResultsResponse.data);
 
       // Вся история (только для админа)
-      if (user?.role === 'admin') {
+      if (user?.role === "admin") {
         try {
-          const historyResponse = await api.get('/admin/history');
+          const historyResponse = await api.get("/admin/history");
           setHistory(historyResponse.data);
         } catch (historyError) {
-          console.log('History endpoint not available');
+          console.log("History endpoint not available");
         }
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch results');
-      console.error('Failed to fetch results:', err);
+      setError(err.response?.data?.error || "Failed to fetch results");
+      console.error("Failed to fetch results:", err);
     } finally {
       setLoading(false);
     }
@@ -88,26 +89,33 @@ const ResultPage: React.FC = () => {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'weak': return 'error';
-      case 'medium': return 'warning';
-      case 'high': return 'success';
-      default: return 'default';
+      case "weak":
+        return "error";
+      case "medium":
+        return "warning";
+      case "high":
+        return "success";
+      default:
+        return "default";
     }
   };
 
   const getLevelText = (level: string) => {
     switch (level) {
-      case 'weak': return t('weak');
-      case 'medium': return t('medium');
-      case 'high': return t('high');
-      default: return level;
+      case "weak":
+        return t("weak");
+      case "medium":
+        return t("medium");
+      case "high":
+        return t("high");
+      default:
+        return level;
     }
   };
 
-
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+      <Container sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
         <CircularProgress />
       </Container>
     );
@@ -129,39 +137,46 @@ const ResultPage: React.FC = () => {
     <Container maxWidth="lg">
       <Box sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          📊 {t('yourResults')}
+          📊 {t("yourResults")}
         </Typography>
 
         {/* Latest Result Summary */}
         {latestResult && (
           <Card sx={{ mb: 4 }}>
             <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">
-                  {t('latestResultTitle')}
-                </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 2,
+                }}
+              >
+                <Typography variant="h6">{t("latestResultTitle")}</Typography>
               </Box>
 
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <Typography variant="body2" color="text.secondary">
-                    {t('testLevel')}
+                    {t("testLevel")}
                   </Typography>
                   <Typography variant="h5">
-                    {latestResult.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
+                    {latestResult.level === "easy"
+                      ? t("easyLevel")
+                      : t("mediumLevel")}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Typography variant="body2" color="text.secondary">
-                    {t('correctAnswers')}
+                    {t("correctAnswers")}
                   </Typography>
                   <Typography variant="h5">
-                    {latestResult.score} / 10
+                    {latestResult.score} / {latestResult.total_questions}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Typography variant="body2" color="text.secondary">
-                    {t('percentage')}
+                    {t("percentage")}
                   </Typography>
                   <Typography variant="h5">
                     {latestResult.percentage}%
@@ -171,32 +186,41 @@ const ResultPage: React.FC = () => {
 
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {t('level')}
+                  {t("level")}
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={latestResult.percentage} 
-                  sx={{ 
-                    height: 10, 
+                <LinearProgress
+                  variant="determinate"
+                  value={latestResult.percentage}
+                  sx={{
+                    height: 10,
                     borderRadius: 5,
-                    mb: 1 
+                    mb: 1,
                   }}
                   color={getLevelColor(latestResult.color_level) as any}
                 />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                  <Chip 
-                    label={getLevelText(latestResult.color_level)} 
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mt: 1,
+                  }}
+                >
+                  <Chip
+                    label={getLevelText(latestResult.color_level)}
                     color={getLevelColor(latestResult.color_level)}
-                    sx={{ fontWeight: 'bold' }}
+                    sx={{ fontWeight: "bold" }}
                   />
                   <Typography variant="body2">
-                    {new Date(latestResult.completed_at).toLocaleDateString(locale, {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {new Date(latestResult.completed_at).toLocaleDateString(
+                      locale,
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
                   </Typography>
                 </Box>
               </Box>
@@ -206,13 +230,9 @@ const ResultPage: React.FC = () => {
 
         {/* Tabs */}
         <Paper sx={{ mb: 3 }}>
-          <Tabs 
-            value={tab} 
-            onChange={(e, v) => setTab(v)}
-            variant="fullWidth"
-          >
-            <Tab label={t('myResultsTab')} />
-            {user?.role === 'admin' && <Tab label={t('historyTab')} />}
+          <Tabs value={tab} onChange={(e, v) => setTab(v)} variant="fullWidth">
+            <Tab label={t("myResultsTab")} />
+            {user?.role === "admin" && <Tab label={t("historyTab")} />}
           </Tabs>
         </Paper>
 
@@ -220,20 +240,18 @@ const ResultPage: React.FC = () => {
         {tab === 0 && (
           <Box>
             {results.length === 0 ? (
-              <Alert severity="info">
-                {t('noResultsInfo')}
-              </Alert>
+              <Alert severity="info">{t("noResultsInfo")}</Alert>
             ) : (
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{t('dateTime')}</TableCell>
-                      <TableCell>{t('levelLabel')}</TableCell>
-                      <TableCell align="center">{t('score')}</TableCell>
-                      <TableCell align="center">{t('percentage')}</TableCell>
-                      <TableCell>{t('logicLevel')}</TableCell>
-                      <TableCell>{t('actions')}</TableCell>
+                      <TableCell>{t("dateTime")}</TableCell>
+                      <TableCell>{t("levelLabel")}</TableCell>
+                      <TableCell align="center">{t("score")}</TableCell>
+                      <TableCell align="center">{t("percentage")}</TableCell>
+                      <TableCell>{t("logicLevel")}</TableCell>
+                      <TableCell>{t("actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -243,11 +261,13 @@ const ResultPage: React.FC = () => {
                           {new Date(result.completed_at).toLocaleString(locale)}
                         </TableCell>
                         <TableCell>
-                          {result.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
+                          {result.level === "easy"
+                            ? t("easyLevel")
+                            : t("mediumLevel")}
                         </TableCell>
                         <TableCell align="center">
                           <Typography variant="h6">
-                            {result.score}/10
+                            {result.score}/{result.total_questions}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -256,8 +276,8 @@ const ResultPage: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            label={getLevelText(result.color_level)} 
+                          <Chip
+                            label={getLevelText(result.color_level)}
                             color={getLevelColor(result.color_level)}
                             size="small"
                           />
@@ -272,28 +292,26 @@ const ResultPage: React.FC = () => {
         )}
 
         {/* Test History Tab (Admin Only) */}
-        {tab === 1 && user?.role === 'admin' && (
+        {tab === 1 && user?.role === "admin" && (
           <Box>
             <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-              {t('historyTitle')}
+              {t("historyTitle")}
             </Typography>
-            
+
             {history.length === 0 ? (
-              <Alert severity="info">
-                {t('noHistory')}
-              </Alert>
+              <Alert severity="info">{t("noHistory")}</Alert>
             ) : (
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{t('student')}</TableCell>
-                      <TableCell>{t('email')}</TableCell>
-                      <TableCell>{t('testLevel')}</TableCell>
-                      <TableCell>{t('dateTime')}</TableCell>
-                      <TableCell align="center">{t('score')}</TableCell>
-                      <TableCell align="center">{t('percentage')}</TableCell>
-                      <TableCell>{t('logicLevel')}</TableCell>
+                      <TableCell>{t("student")}</TableCell>
+                      <TableCell>{t("email")}</TableCell>
+                      <TableCell>{t("testLevel")}</TableCell>
+                      <TableCell>{t("dateTime")}</TableCell>
+                      <TableCell align="center">{t("score")}</TableCell>
+                      <TableCell align="center">{t("percentage")}</TableCell>
+                      <TableCell>{t("logicLevel")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -310,42 +328,58 @@ const ResultPage: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          {item.level === 'easy' ? t('easyLevel') : t('mediumLevel')}
+                          {item.level === "easy"
+                            ? t("easyLevel")
+                            : t("mediumLevel")}
                         </TableCell>
                         <TableCell>
                           {new Date(item.completed_at).toLocaleString(locale)}
                         </TableCell>
                         <TableCell align="center">
                           <Typography fontWeight="medium">
-                            {item.score}/10
+                            {item.score}/{item.total_questions}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          <Typography 
+                          <Typography
                             fontWeight="medium"
                             color={
-                              item.percentage >= 70 ? 'success.main' :
-                              item.percentage >= 40 ? 'warning.main' : 'error.main'
+                              item.percentage >= 70
+                                ? "success.main"
+                                : item.percentage >= 40
+                                  ? "warning.main"
+                                  : "error.main"
                             }
                           >
                             {item.percentage}%
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip 
-                              label={getLevelText(item.color_level)} 
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <Chip
+                              label={getLevelText(item.color_level)}
                               color={getLevelColor(item.color_level)}
                               size="small"
                             />
-                            <Box sx={{ 
-                              width: 8, 
-                              height: 8, 
-                              borderRadius: '50%',
-                              bgcolor: 
-                                item.color_level === 'high' ? 'success.main' :
-                                item.color_level === 'medium' ? 'warning.main' : 'error.main'
-                            }} />
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                bgcolor:
+                                  item.color_level === "high"
+                                    ? "success.main"
+                                    : item.color_level === "medium"
+                                      ? "warning.main"
+                                      : "error.main",
+                              }}
+                            />
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -354,10 +388,17 @@ const ResultPage: React.FC = () => {
                 </Table>
               </TableContainer>
             )}
-            
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+
+            <Box
+              sx={{
+                mt: 3,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <Typography variant="body2" color="text.secondary">
-                {t('totalRecords')}: {history.length}
+                {t("totalRecords")}: {history.length}
               </Typography>
             </Box>
           </Box>
