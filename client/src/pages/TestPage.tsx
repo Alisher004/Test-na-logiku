@@ -38,7 +38,9 @@ const TestPage: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [textAnswers, setTextAnswers] = useState<{ [key: number]: string }>({});
-  const [timeLeft, setTimeLeft] = useState(20 * 60);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [startTime, setStartTime] = useState<number>(0);
+  const [testTimeMinutes, setTestTimeMinutes] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -48,12 +50,16 @@ const TestPage: React.FC = () => {
 
   useEffect(() => {
     if (timeLeft > 0 && questions.length > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      const timer = setTimeout(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const remaining = testTimeMinutes * 60 - elapsed;
+        setTimeLeft(Math.max(0, Math.floor(remaining)));
+      }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && questions.length > 0) {
       submitTest();
     }
-  }, [timeLeft, questions]);
+  }, [timeLeft, questions, startTime, testTimeMinutes]);
 
   const fetchQuestions = async () => {
     try {
@@ -62,14 +68,39 @@ const TestPage: React.FC = () => {
         params: { lang: i18n.language }
       });
       
-      const validatedQuestions = response.data.map((q: any) => ({
+      const { questions: fetchedQuestions, timeMinutes } = response.data;
+      
+      const validatedQuestions = fetchedQuestions.map((q: any) => ({
         ...q,
         options: Array.isArray(q.options) ? q.options : [],
         type: q.type || 'single'
       }));
       
-      console.log('Fetched questions:', validatedQuestions);
       setQuestions(validatedQuestions);
+      setTestTimeMinutes(timeMinutes);
+      
+      // Check if test already started
+      const storageKey = `test_start_${level}_${user?.id}`;
+      let storedStartTime = localStorage.getItem(storageKey);
+      
+      if (storedStartTime) {
+        const start = parseInt(storedStartTime);
+        const elapsed = (Date.now() - start) / 1000;
+        const remaining = timeMinutes * 60 - elapsed;
+        if (remaining <= 0) {
+          // Time expired, auto submit
+          await submitTest();
+          return;
+        }
+        setStartTime(start);
+        setTimeLeft(Math.floor(remaining));
+      } else {
+        // New test
+        const now = Date.now();
+        localStorage.setItem(storageKey, now.toString());
+        setStartTime(now);
+        setTimeLeft(timeMinutes * 60);
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load questions');
     } finally {
@@ -126,7 +157,11 @@ const TestPage: React.FC = () => {
         userId: user?.id,
         level,
         answers: [...answerArray, ...textAnswerArray],
+        startTime,
       });
+
+      // Clear timer data
+      localStorage.removeItem(`test_start_${level}_${user?.id}`);
 
       navigate('/results');
     } catch (err: any) {
@@ -185,7 +220,7 @@ const TestPage: React.FC = () => {
             {currentQ.type === 'motivational' && ' (Мотивационный)'}
             {currentQ.type === 'text' && ' (Текстовый ответ)'}
           </Typography>
-          <Typography variant="h6" color="primary">
+          <Typography variant="h6" color={timeLeft < 300 ? 'error' : 'primary'}>
             Время: {formatTime(timeLeft)}
           </Typography>
         </Box>
@@ -224,18 +259,18 @@ const TestPage: React.FC = () => {
                   multiline
                   rows={currentQ.type === 'motivational' ? 6 : 4}
                   variant="outlined"
-                  label={currentQ.type === 'motivational' ? 'Ваш ответ (мотивация)' : 'Ваш ответ'}
+                  label={currentQ.type === 'motivational' ? t('yourAnswerMotivation') : t('yourAnswer')}
                   value={textAnswers[currentQ.id] || ''}
                   onChange={(e) => handleTextAnswerChange(currentQ.id, e.target.value)}
                   placeholder={
                     currentQ.type === 'motivational' 
-                      ? 'Пожалуйста, напишите вашу мотивацию...' 
-                      : 'Пожалуйста, напишите ваш ответ...'
+                      ? t('motivationPlaceholder')
+                      : t('answerPlaceholder')
                   }
                 />
                 {currentQ.type === 'motivational' && (
                   <Alert severity="info" sx={{ mt: 2 }}>
-                    Пожалуйста, напишите вашу мотивацию для участия
+                    {t('motivationAlert')}
                   </Alert>
                 )}
               </Box>
@@ -284,8 +319,8 @@ const TestPage: React.FC = () => {
 
         <Alert severity="info" sx={{ mt: 3 }}>
           {currentQ.type === 'motivational' || currentQ.type === 'text' 
-            ? 'Пожалуйста, напишите развернутый ответ' 
-            : 'Нельзя пропустить вопрос. Выберите ответ, чтобы продолжить.'}
+            ? t('detailedAnswerAlert')
+            : t('cannotSkipAlert')}
         </Alert>
       </Box>
     </Container>

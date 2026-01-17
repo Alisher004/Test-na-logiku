@@ -26,7 +26,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      setError('Пожалуйста, заполните все поля');
+      setError(t('fillAllFields'));
       return;
     }
 

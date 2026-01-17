@@ -220,7 +220,11 @@ const deleteQuestion = async (req, res) => {
 const getTestHistory = async (req, res) => {
   try {
     const result = await db.query(
-      'SELECT * FROM results ORDER BY completed_at DESC'
+      `SELECT r.*, u.full_name, u.email,
+       (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
+       FROM results r
+       JOIN users u ON r.user_id = u.id
+       ORDER BY r.completed_at DESC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -248,7 +252,8 @@ const getAllUsers = async (req, res) => {
 const getAllResults = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT r.*, u.full_name, u.email 
+      `SELECT r.*, u.full_name, u.email,
+       (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
        FROM results r
        JOIN users u ON r.user_id = u.id
        ORDER BY r.completed_at DESC`

@@ -118,6 +118,7 @@ const AdminPanel: React.FC = () => {
     correct_index: null as number | null,
     imageFile: null as File | null,
     imageFilename: '',
+    imageUrl: '',
   });
 
   // JSON маалыматты массивге айландыруучу функция
@@ -247,6 +248,7 @@ const AdminPanel: React.FC = () => {
         correct_index: correctIndex,
         imageFile: null,
         imageFilename: question.image_filename || '',
+        imageUrl: question.image_file ? `/api/questions/${question.id}/image` : '',
       });
     } else {
       setEditingQuestion(null);
@@ -261,6 +263,7 @@ const AdminPanel: React.FC = () => {
         correct_index: null,
         imageFile: null,
         imageFilename: '',
+        imageUrl: '',
       });
     }
     setOpenDialog(true);
@@ -409,11 +412,8 @@ const AdminPanel: React.FC = () => {
         return;
       }
     } else {
-      // Motivational вопрос үчүн текшерүү
-      if (!correctAnswer || !correctAnswer.trim()) {
-        setError(t('correctAnswerRequired'));
-        return;
-      }
+      // Motivational вопрос үчүн текшерүү (туура жооп кереги жок)
+      // correct_answer бош калат
     }
 
     try {
@@ -421,7 +421,7 @@ const AdminPanel: React.FC = () => {
       const { correct_index, imageFile, ...rest } = formData as any;
       const dataToSend = {
         ...rest,
-        correct_answer: correctAnswer.trim(),
+        correct_answer: formData.type === 'motivational' ? '' : correctAnswer.trim(),
       };
 
       // Process options based on question type
@@ -904,6 +904,7 @@ const AdminPanel: React.FC = () => {
                       <TableCell>Вопрос (RU)</TableCell>
                       <TableCell>Вопрос (KG)</TableCell>
                       <TableCell>{t('correctAnswer')}</TableCell>
+                      <TableCell>Изображение</TableCell>
                       <TableCell>{t('actions')}</TableCell>
                     </TableRow>
                   </TableHead>
@@ -936,9 +937,28 @@ const AdminPanel: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography noWrap title={question.correct_answer}>
-                            {question.correct_answer}
+                          <Typography noWrap title={question.correct_answer || (question.type === 'motivational' ? 'Мотивациялык' : '')}>
+                            {question.type === 'motivational' ? 'Мотивациялык' : question.correct_answer}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {question.image_filename ? (
+                            <img 
+                              src={`/api/questions/${question.id}/image`}
+                              alt="Question"
+                              style={{ 
+                                width: '50px', 
+                                height: '50px', 
+                                objectFit: 'cover',
+                                borderRadius: '4px'
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">-</Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <IconButton 
@@ -1080,7 +1100,7 @@ const AdminPanel: React.FC = () => {
                             {result.level === 'easy' ? t('levelEasy') : t('levelMedium')}
                           </TableCell>
                           <TableCell align="right">
-                            {result.score}/{result.total_questions || result.answers?.length || 10}
+                            {result.score}/{result.total_questions}
                           </TableCell>
                           <TableCell align="right">{result.percentage}%</TableCell>
                           <TableCell>
@@ -1229,7 +1249,8 @@ const AdminPanel: React.FC = () => {
                     setFormData({
                       ...formData,
                       imageFile: file,
-                      imageFilename: file.name
+                      imageFilename: file.name,
+                      imageUrl: URL.createObjectURL(file)
                     });
                   }
                 }}
@@ -1248,6 +1269,24 @@ const AdminPanel: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">
                   Выбрано: {formData.imageFilename}
                 </Typography>
+              )}
+              {formData.imageUrl && (
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <img 
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '200px', 
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                    onError={(e) => {
+                      console.error('Preview failed to load');
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </Box>
               )}
               {editingQuestion?.image_filename && !formData.imageFile && (
                 <Typography variant="body2" color="text.secondary">
@@ -1337,6 +1376,10 @@ const AdminPanel: React.FC = () => {
             )}
 
             {formData.type === 'motivational' ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                {t('motivationalQuestionNote')}
+              </Typography>
+            ) : (
               <>
                 <Typography variant="subtitle1" gutterBottom sx={{ mt: 2 }}>
                   {t('correctAnswer')}
@@ -1352,27 +1395,23 @@ const AdminPanel: React.FC = () => {
                   error={!formData.correct_answer.trim()}
                   helperText={!formData.correct_answer.trim() ? t('requiredField') : ''}
                 />
-                <Typography variant="caption" color="text.secondary">
-                  {t('motivationalQuestionNote')}
-                </Typography>
-              </>
-            ) : (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  {t('selectCorrect')}
-                </Typography>
-                {formData.correct_index !== null ? (
-                  <Chip 
-                    label={`Выбран вариант ${formData.correct_index + 1}: ${formData.options_ru[formData.correct_index]}`}
-                    color="success"
-                    variant="outlined"
-                  />
-                ) : (
-                  <Typography variant="caption" color="error">
-                    {t('selectCorrectOption')}
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {t('selectCorrect')}
                   </Typography>
-                )}
-              </Box>
+                  {formData.correct_index !== null ? (
+                    <Chip 
+                      label={`Выбран вариант ${formData.correct_index + 1}: ${formData.options_ru[formData.correct_index]}`}
+                      color="success"
+                      variant="outlined"
+                    />
+                  ) : (
+                    <Typography variant="caption" color="error">
+                      {t('selectCorrectOption')}
+                    </Typography>
+                  )}
+                </Box>
+              </>
             )}
           </Box>
         </DialogContent>
