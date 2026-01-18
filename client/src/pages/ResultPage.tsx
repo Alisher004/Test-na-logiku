@@ -27,6 +27,14 @@ import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { Download, Visibility, Print } from "@mui/icons-material";
 
+interface Answer {
+  question_id: number;
+  question_text_ru: string;
+  question_text_kg: string;
+  given_answer: string;
+  correct_answer: string;
+}
+
 interface Result {
   id: number;
   level: string;
@@ -36,14 +44,16 @@ interface Result {
   completed_at: string;
   user_id: number;
   full_name?: string;
-  email?: string;
+  phone_number?: string;
   total_questions: number;
+  answers?: Answer[];
 }
 
 interface HistoryItem extends Result {
   full_name: string;
-  email: string;
+  phone_number: string;
   total_questions: number;
+  answers?: Answer[];
 }
 
 const ResultPage: React.FC = () => {
@@ -52,6 +62,7 @@ const ResultPage: React.FC = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedResult, setExpandedResult] = useState<number | null>(null);
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
 
@@ -113,6 +124,10 @@ const ResultPage: React.FC = () => {
     }
   };
 
+  const toggleResultDetails = (id: number) => {
+    setExpandedResult(expandedResult === id ? null : id);
+  };
+
   if (loading) {
     return (
       <Container sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
@@ -142,7 +157,8 @@ const ResultPage: React.FC = () => {
 
         {/* Latest Result Summary */}
         {latestResult && (
-          <Card sx={{ mb: 4 }}>
+          <>
+            <Card sx={{ mb: 4 }}>
             <CardContent>
               <Box
                 sx={{
@@ -222,10 +238,65 @@ const ResultPage: React.FC = () => {
                       },
                     )}
                   </Typography>
+                  <IconButton
+                    onClick={() => toggleResultDetails(latestResult.id)}
+                    title={expandedResult === latestResult.id ? t('hideDetails') : t('showDetails')}
+                    size="small"
+                  >
+                    <Visibility />
+                  </IconButton>
                 </Box>
               </Box>
             </CardContent>
           </Card>
+
+          {expandedResult === latestResult.id && latestResult.answers && (
+            <Card sx={{ mt: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {t('detailedAnswers')}
+                </Typography>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>№</TableCell>
+                      <TableCell>{t('question')}</TableCell>
+                      <TableCell>{t('givenAnswer')}</TableCell>
+                      <TableCell>{t('correctAnswer')}</TableCell>
+                      <TableCell>{t('status')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {latestResult.answers.map((answer, index) => (
+                      <TableRow key={answer.question_id}>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                              {answer.question_text_ru}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                              {answer.question_text_kg}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>{answer.given_answer}</TableCell>
+                        <TableCell>{answer.correct_answer}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={answer.given_answer === answer.correct_answer ? t('correct') : t('incorrect')}
+                            color={answer.given_answer === answer.correct_answer ? 'success' : 'error'}
+                            size="small"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+          </>
         )}
 
         {/* Tabs */}
@@ -305,8 +376,9 @@ const ResultPage: React.FC = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
+                      <TableCell></TableCell>
                       <TableCell>{t("student")}</TableCell>
-                      <TableCell>{t("email")}</TableCell>
+                      <TableCell>Телефон</TableCell>
                       <TableCell>{t("testLevel")}</TableCell>
                       <TableCell>{t("dateTime")}</TableCell>
                       <TableCell align="center">{t("score")}</TableCell>
@@ -315,8 +387,16 @@ const ResultPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {history.map((item) => (
-                      <TableRow key={item.id}>
+                    {history.flatMap((item) => [
+                      <TableRow key={`${item.id}-main`}>
+                        <TableCell>
+                          <IconButton
+                            onClick={() => toggleResultDetails(item.id)}
+                            title={expandedResult === item.id ? t('hideDetails') : t('showDetails')}
+                          >
+                            {expandedResult === item.id ? <Visibility /> : <Visibility />}
+                          </IconButton>
+                        </TableCell>
                         <TableCell>
                           <Typography fontWeight="medium">
                             {item.full_name}
@@ -324,7 +404,7 @@ const ResultPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {item.email}
+                            {item.phone_number}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -382,8 +462,56 @@ const ResultPage: React.FC = () => {
                             />
                           </Box>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                      </TableRow>,
+                      expandedResult === item.id && item.answers && (
+                        <TableRow key={`${item.id}-expanded`}>
+                          <TableCell colSpan={8} sx={{ backgroundColor: 'action.hover' }}>
+                            <Box sx={{ py: 2 }}>
+                              <Typography variant="subtitle2" gutterBottom>
+                                {t('detailedAnswers')}
+                              </Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>{t('number')}</TableCell>
+                                    <TableCell>{t('question')}</TableCell>
+                                    <TableCell>{t('givenAnswer')}</TableCell>
+                                    <TableCell>{t('correctAnswer')}</TableCell>
+                                    <TableCell>{t('status')}</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {item.answers.map((answer, index) => (
+                                    <TableRow key={answer.question_id}>
+                                      <TableCell>{index + 1}</TableCell>
+                                      <TableCell>
+                                        <Box>
+                                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                            {answer.question_text_ru}
+                                          </Typography>
+                                          <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                                            {answer.question_text_kg}
+                                          </Typography>
+                                        </Box>
+                                      </TableCell>
+                                      <TableCell>{answer.given_answer}</TableCell>
+                                      <TableCell>{answer.correct_answer}</TableCell>
+                                      <TableCell>
+                                        <Chip 
+                                          label={answer.given_answer === answer.correct_answer ? t('correct') : t('incorrect')}
+                                          color={answer.given_answer === answer.correct_answer ? 'success' : 'error'}
+                                          size="small"
+                                        />
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    ])}
                   </TableBody>
                 </Table>
               </TableContainer>

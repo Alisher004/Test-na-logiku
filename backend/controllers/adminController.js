@@ -1,4 +1,45 @@
 const db = require('../config/db');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find admin
+    const result = await db.query(
+      'SELECT * FROM admins WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Неверные учетные данные' });
+    }
+
+    const admin = result.rows[0];
+
+    // Check password
+    const validPassword = await bcrypt.compare(password, admin.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Неверные учетные данные' });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { id: admin.id, role: 'admin' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
 
 // Dashboard Statistics
 const getDashboardStats = async (req, res) => {
@@ -20,7 +61,7 @@ const getDashboardStats = async (req, res) => {
     `);
 
     const recentResults = await db.query(`
-      SELECT r.*, u.full_name, u.email 
+      SELECT r.*, u.full_name, u.phone_number 
       FROM results r
       JOIN users u ON r.user_id = u.id
       ORDER BY r.completed_at DESC 
@@ -220,7 +261,7 @@ const deleteQuestion = async (req, res) => {
 const getTestHistory = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT r.*, u.full_name, u.email,
+      `SELECT r.*, u.full_name, u.phone_number as email,
        (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
        FROM results r
        JOIN users u ON r.user_id = u.id
@@ -237,7 +278,7 @@ const getTestHistory = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, full_name, email, role, created_at 
+      `SELECT id, full_name, phone_number as email, age, 'user' as role, created_at 
        FROM users 
        ORDER BY created_at DESC`
     );
@@ -252,7 +293,7 @@ const getAllUsers = async (req, res) => {
 const getAllResults = async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT r.*, u.full_name, u.email,
+      `SELECT r.*, u.full_name, u.phone_number as email,
        (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
        FROM results r
        JOIN users u ON r.user_id = u.id
@@ -362,6 +403,7 @@ const updateTestSettings = async (req, res) => {
 };
 
 module.exports = {
+  adminLogin,
   getDashboardStats,
   getAllQuestions,
   createQuestion,

@@ -119,7 +119,7 @@ const Header: React.FC = () => {
                     border: "1px solid white",
                   }}
                 >
-                  {user.full_name.charAt(0).toUpperCase()}
+                  {user?.full_name?.charAt(0).toUpperCase()}
                 </Avatar>
               </IconButton>
 
@@ -147,7 +147,7 @@ const Header: React.FC = () => {
                     {user.full_name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {user.email}
+                    {user.phone_number}
                   </Typography>
                   <Box sx={{ mt: 0.5 }}>
                     <Typography
@@ -167,7 +167,7 @@ const Header: React.FC = () => {
                         fontWeight: "bold",
                       }}
                     >
-                      {user.role === "admin" ? "Администратор" : "Студент"}
+                      {user.role === "admin" ? t('administrator') : t('studentRole')}
                     </Typography>
                   </Box>
                 </Box>
@@ -175,7 +175,7 @@ const Header: React.FC = () => {
                 <Divider />
 
                 {/* Student Menu Items */}
-                {user.role === "student" && (
+                {user.role === "user" && (
                   <>
                     <MuiMenuItem
                       onClick={() => handleNavigation("/test/select")}
@@ -183,14 +183,14 @@ const Header: React.FC = () => {
                       <ListItemIcon>
                         <Assignment fontSize="small" />
                       </ListItemIcon>
-                      <ListItemText>Пройти тест</ListItemText>
+                      <ListItemText>{t('takeTest')}</ListItemText>
                     </MuiMenuItem>
 
                     <MuiMenuItem onClick={() => handleNavigation("/results")}>
                       <ListItemIcon>
                         <BarChart fontSize="small" />
                       </ListItemIcon>
-                      <ListItemText>Мои результаты</ListItemText>
+                      <ListItemText>{t('myResults')}</ListItemText>
                     </MuiMenuItem>
 
                     <Divider />
@@ -207,7 +207,7 @@ const Header: React.FC = () => {
                       <ListItemIcon>
                         <AdminPanelSettings fontSize="small" />
                       </ListItemIcon>
-                      <ListItemText>Админ панель</ListItemText>
+                      <ListItemText>{t('adminPanel')}</ListItemText>
                     </MuiMenuItem>
                     <Divider />
                   </>
@@ -218,7 +218,7 @@ const Header: React.FC = () => {
                   <ListItemIcon>
                     <Logout fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Выйти</ListItemText>
+                  <ListItemText>{t('logout')}</ListItemText>
                 </MuiMenuItem>
               </Menu>
             </>
@@ -230,14 +230,14 @@ const Header: React.FC = () => {
                 onClick={() => navigate("/login")}
                 sx={{ display: { xs: "none", sm: "block" } }}
               >
-                Войти
+                {t('login')}
               </Button>
               <Button
                 color="inherit"
                 onClick={() => navigate("/register")}
                 sx={{ display: { xs: "none", sm: "block" } }}
               >
-                Регистрация
+                {t('register')}
               </Button>
             </>
           )}

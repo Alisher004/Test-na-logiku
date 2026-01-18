@@ -62,6 +62,7 @@ interface User {
   email: string;
   role: string;
   created_at: string;
+  age: string;
 }
 
 interface Answer {
@@ -670,7 +671,7 @@ const AdminPanel: React.FC = () => {
                     </Typography>
                     {results.length === 0 ? (
                       <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
-                        {t('noResults')}
+                        {t('noData')}
                       </Typography>
                     ) : (
                       <TableContainer component={Paper} variant="outlined">
@@ -881,7 +882,7 @@ const AdminPanel: React.FC = () => {
                 <CardContent sx={{ textAlign: 'center', py: 4 }}>
                   <QuestionAnswer sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">
-                    {t('noQuestions')}
+                    {t('noQuestionsFound')}
                   </Typography>
                   <Button
                     variant="contained"
@@ -889,7 +890,7 @@ const AdminPanel: React.FC = () => {
                     onClick={() => handleOpenDialog()}
                     sx={{ mt: 2 }}
                   >
-                    {t('addFirstQuestion')}
+                    {t('addQuestion')}
                   </Button>
                 </CardContent>
               </Card>
@@ -1003,7 +1004,7 @@ const AdminPanel: React.FC = () => {
                 <CardContent sx={{ textAlign: 'center', py: 4 }}>
                   <People sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">
-                    {t('noUsers')}
+                    {t('noData')}
                   </Typography>
                 </CardContent>
               </Card>
@@ -1015,7 +1016,7 @@ const AdminPanel: React.FC = () => {
                       <TableCell>ID</TableCell>
                       <TableCell>ФИО</TableCell>
                       <TableCell>{t('email')}</TableCell>
-                      <TableCell>{t('role')}</TableCell>
+                      <TableCell>{t('age')}</TableCell>
                       <TableCell>{t('dateRegistered')}</TableCell>
                     </TableRow>
                   </TableHead>
@@ -1027,8 +1028,7 @@ const AdminPanel: React.FC = () => {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Chip 
-                            label={user.role} 
-                            color={user.role === 'admin' ? 'error' : 'default'}
+                            label={user.age} 
                             size="small"
                           />
                         </TableCell>
@@ -1060,7 +1060,7 @@ const AdminPanel: React.FC = () => {
                 <CardContent sx={{ textAlign: 'center', py: 4 }}>
                   <School sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">
-                    {t('noResults')}
+                    {t('noData')}
                   </Typography>
                 </CardContent>
               </Card>

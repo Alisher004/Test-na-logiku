@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { getQuestions, submitTest, getResults } = require('../controllers/testController');
+const { getQuestions, submitTest, getResults, getTestSettings } = require('../controllers/testController');
 const { authMiddleware } = require('../middleware/authMiddleware');
+
+// Публичные маршруты
+router.get('/settings', getTestSettings);
 
 // Студенттер үчүн гана
 router.get('/questions/:level', authMiddleware, (req, res, next) => {
