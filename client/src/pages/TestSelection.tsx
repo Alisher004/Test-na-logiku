@@ -19,6 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
 import {
   ArrowForward,
   Language,
@@ -35,8 +36,8 @@ const TestSelection: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState("easy");
   const [testLanguage, setTestLanguage] = useState(i18n.language);
   const [testSettings, setTestSettings] = useState({
-    easy: { questions: 15, time: 20 },
-    medium: { questions: 15, time: 20 },
+    easy: { questions: 0, time: 0 },
+    medium: { questions: 0, time: 0 },
   });
 
   useEffect(() => {
@@ -46,11 +47,11 @@ const TestSelection: React.FC = () => {
 
   const loadTestSettings = async () => {
     try {
-      // Здесь можно загрузить настройки с сервера
-      // const response = await api.get('/test/settings');
-      // setTestSettings(response.data);
+      const response = await api.get('/test/settings');
+      setTestSettings(response.data);
     } catch (error) {
       console.error("Failed to load test settings:", error);
+      // Оставляем дефолтные значения в случае ошибки
     }
   };
 
@@ -100,31 +101,8 @@ const TestSelection: React.FC = () => {
                   sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}
                 >
                   <Language color="primary" />
-                  <Typography variant="h6">{t("selectLanguage")}</Typography>
+                  <Typography variant="h6">{t("selectLanguage")}👆</Typography>
                 </Box>
-
-                <FormControl fullWidth>
-                  <Select
-                    value={testLanguage}
-                    onChange={(e) => setTestLanguage(e.target.value)}
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value="ru">
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Typography>🇷🇺 Русский язык</Typography>
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="kg">
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Typography>🇰🇬 Кыргыз тили</Typography>
-                      </Box>
-                    </MenuItem>
-                  </Select>
-                </FormControl>
 
                 <Typography variant="body2" color="text.secondary">
                   {t("languageHint")}
@@ -198,7 +176,7 @@ const TestSelection: React.FC = () => {
                             >
                               <Psychology fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.medium.questions}{" "}
+                                {testSettings.easy.questions}{" "}
                                 {t("logicQuestions")}
                               </Typography>
                             </Box>
@@ -211,7 +189,7 @@ const TestSelection: React.FC = () => {
                             >
                               <Timer fontSize="small" />
                               <Typography variant="body2">
-                                {testSettings.medium.time} {t("minutes")}
+                                {testSettings.easy.time} {t("minutes")}
                               </Typography>
                             </Box>
                           </Box>

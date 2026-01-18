@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const {
+  adminLogin,
   getDashboardStats,
   getAllQuestions,
   createQuestion,
@@ -14,6 +15,9 @@ const {
   updateTestSettings,
 } = require('../controllers/adminController');
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+
+// Admin login
+router.post('/login', adminLogin);
 
 // Configure multer for image uploads
 const storage = multer.memoryStorage();

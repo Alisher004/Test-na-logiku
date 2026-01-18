@@ -10,6 +10,7 @@ import TestSelection from './pages/TestSelection';
 import TestPage from './pages/TestPage';
 import ResultPage from './pages/ResultPage';
 import AdminPanel from './pages/AdminPanel';
+import AdminLogin from './pages/AdminLogin';
 import { useAuth } from './contexts/AuthContext';
 
 const theme = createTheme({
@@ -32,7 +33,7 @@ const routerOptions = {
 };
 
 const App: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { i18n } = useTranslation();
 
   React.useEffect(() => {
@@ -49,10 +50,15 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
             <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/test/select" element={user ? <TestSelection /> : <Navigate to="/login" />} />
             <Route path="/test/:level" element={user ? <TestPage /> : <Navigate to="/login" />} />
             <Route path="/results" element={user ? <ResultPage /> : <Navigate to="/login" />} />
-            <Route path="/admin" element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/" />} />
+            <Route path="/admin" element={
+              token ? (
+                user?.role === 'admin' ? <AdminPanel /> : <div>Loading...</div>
+              ) : <Navigate to="/admin/login" />
+            } />
           </Routes>
         </Container>
       </Router>

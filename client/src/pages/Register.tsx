@@ -14,9 +14,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Register: React.FC = () => {
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [age, setAge] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -27,20 +26,21 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fullName || !email || !password || !phoneNumber) {
+    if (!fullName || !phoneNumber || !age) {
       setError(t('fillAllFields'));
       return;
     }
 
-    if (password.length < 6) {
-      setError(t('passwordTooShort'));
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum) || ageNum < 1) {
+      setError('Invalid age');
       return;
     }
 
     try {
       setError('');
       setLoading(true);
-      await register(fullName, email, password, phoneNumber);
+      await register(fullName, phoneNumber, ageNum);
       navigate('/');
     } catch (err: any) {
       setError(err.message);
@@ -74,30 +74,20 @@ const Register: React.FC = () => {
 
           <TextField
             fullWidth
-            label={t('email')}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
-            label={t('password')}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            margin="normal"
-            required
-          />
-
-          <TextField
-            fullWidth
             label={t('phoneNumber')}
             type="tel"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
+            margin="normal"
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Age"
+            type="number"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
             margin="normal"
             required
           />

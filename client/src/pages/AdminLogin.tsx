@@ -8,23 +8,23 @@ import {
   Alert,
   Paper,
 } from '@mui/material';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
-const Login: React.FC = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+const AdminLogin: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { login, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!phoneNumber) {
+    if (!email || !password) {
       setError(t('fillAllFields'));
       return;
     }
@@ -32,15 +32,16 @@ const Login: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      const user = await login(phoneNumber);
-      // Navigate based on user role
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
+      const response = await axios.post('http://localhost:5001/api/admin/login', {
+        email,
+        password,
+      });
+      
+      const { token } = response.data;
+      localStorage.setItem('token', token);
+      navigate('/admin');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ const Login: React.FC = () => {
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          {t('login')}
+          Admin Login
         </Typography>
 
         {error && (
@@ -62,10 +63,20 @@ const Login: React.FC = () => {
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label={t('phoneNumber')}
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            margin="normal"
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             required
           />
@@ -78,21 +89,12 @@ const Login: React.FC = () => {
             disabled={loading}
             sx={{ mt: 3, mb: 2 }}
           >
-            {loading ? 'Загрузка...' : t('login')}
+            {loading ? 'Loading...' : 'Login'}
           </Button>
-
-          <Box textAlign="center">
-            <Typography variant="body2">
-              {t('noAccount')}{' '}
-              <Button component={RouterLink} to="/register" color="primary">
-                {t('register')}
-              </Button>
-            </Typography>
-          </Box>
         </Box>
       </Paper>
     </Container>
   );
 };
 
-export default Login;
+export default AdminLogin;

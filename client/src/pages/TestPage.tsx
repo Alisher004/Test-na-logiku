@@ -180,7 +180,7 @@ const TestPage: React.FC = () => {
   if (loading) {
     return (
       <Container>
-        <Typography align="center">Загрузка вопросов...</Typography>
+        <Typography align="center">{t('loadingQuestions')}</Typography>
       </Container>
     );
   }
@@ -196,7 +196,7 @@ const TestPage: React.FC = () => {
   if (questions.length === 0) {
     return (
       <Container>
-        <Typography align="center">Вопросы не найдены</Typography>
+        <Typography align="center">{t('noQuestionsFound')}</Typography>
       </Container>
     );
   }
@@ -206,7 +206,7 @@ const TestPage: React.FC = () => {
   if (!currentQ) {
     return (
       <Container>
-        <Alert severity="error">Вопрос не найден</Alert>
+        <Alert severity="error">{t('questionNotFound')}</Alert>
       </Container>
     );
   }
@@ -216,7 +216,7 @@ const TestPage: React.FC = () => {
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h6">
-            Вопрос {currentQuestion + 1} из {questions.length}
+            {t('questionNumber')} {currentQuestion + 1} {t('of')} {questions.length}
             {currentQ.type === 'motivational' && ' (Мотивационный)'}
             {currentQ.type === 'text' && ' (Текстовый ответ)'}
           </Typography>
@@ -310,7 +310,7 @@ const TestPage: React.FC = () => {
                   onClick={handleNext}
                   disabled={!isCurrentQuestionAnswered()}
                 >
-                  Следующий вопрос
+                  {t('nextQuestion')}
                 </Button>
               )}
             </Box>

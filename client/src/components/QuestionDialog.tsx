@@ -25,6 +25,7 @@ import {
   Add,
   RadioButtonUnchecked,
 } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 interface QuestionDialogProps {
   open: boolean;
@@ -64,6 +65,7 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
 
   const [correctOptionIndex, setCorrectOptionIndex] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!editingQuestion) {
@@ -110,8 +112,8 @@ const QuestionDialog: React.FC<QuestionDialogProps> = ({
   const validateForm = () => {
     const errs: string[] = [];
 
-    if (!formData.question_ru.trim()) errs.push('Вопрос на русском обязателен');
-    if (!formData.question_kg.trim()) errs.push('Вопрос на кыргызском обязателен');
+    if (!formData.question_ru.trim()) errs.push(t('questionRequiredRu'));
+    if (!formData.question_kg.trim()) errs.push(t('questionRequiredKg'));
 
     if (formData.type === 'logic') {
       formData.options_ru.forEach((o, i) => {
@@ -179,7 +181,7 @@ const handleSubmit = () => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        {editingQuestion ? 'Редактировать вопрос' : 'Создать вопрос'}
+        {editingQuestion ? t('editQuestion') : t('createQuestion')}
       </DialogTitle>
 
       <DialogContent dividers>

@@ -125,7 +125,7 @@ const getResults = async (req, res) => {
     const { userId } = req.params;
 
     const result = await db.query(
-      `SELECT r.*, u.full_name, u.email,
+      `SELECT r.*, u.full_name, u.phone_number,
        (SELECT COUNT(*) FROM questions WHERE level = r.level AND is_active = true) as total_questions
        FROM results r
        JOIN users u ON r.user_id = u.id
@@ -134,11 +134,72 @@ const getResults = async (req, res) => {
       [userId]
     );
 
-    res.json(result.rows);
+    // Process each result to include detailed answers
+    const processedResults = await Promise.all(result.rows.map(async (row) => {
+      let answers = [];
+
+      if (row.answers && Array.isArray(row.answers)) {
+        // Get question details for each answer
+        const questionIds = row.answers.map(a => a.questionId);
+
+        if (questionIds.length > 0) {
+          const questionsResult = await db.query(
+            'SELECT id, question_ru, question_kg, correct_answer FROM questions WHERE id = ANY($1)',
+            [questionIds]
+          );
+
+          const questionsMap = {};
+          questionsResult.rows.forEach(q => {
+            questionsMap[q.id] = q;
+          });
+
+          answers = row.answers.map(answer => {
+            const question = questionsMap[answer.questionId];
+            return {
+              question_id: answer.questionId,
+              question_text_ru: question ? question.question_ru : 'Вопрос не найден',
+              question_text_kg: question ? question.question_kg : 'Суроо табылган жок',
+              given_answer: answer.answer,
+              correct_answer: question ? question.correct_answer : 'N/A'
+            };
+          });
+        }
+      }
+
+      return {
+        ...row,
+        total_questions: answers.length,
+        answers
+      };
+    }));
+
+    res.json(processedResults);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-module.exports = { getQuestions, submitTest, getResults };
+const getTestSettings = async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT level, time_minutes as time, (SELECT COUNT(*) FROM questions WHERE level = test_settings.level AND is_active = true) as questions FROM test_settings ORDER BY level'
+    );
+    
+    // Transform to expected format
+    const settings = {};
+    result.rows.forEach(row => {
+      settings[row.level] = {
+        questions: parseInt(row.questions),
+        time: row.time
+      };
+    });
+    
+    res.json(settings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getQuestions, submitTest, getResults, getTestSettings };
